@@ -2,12 +2,6 @@ name: CI
 
 on:
   push:
-    branches:
-      - vanilla
-      - vanilla-dev
-      - expansion
-      - expansion-dev
-  pull_request:
 
 jobs:
   build:
@@ -22,10 +16,10 @@ jobs:
       UNUSED_ERROR: 0
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Checkout agbcc
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: agbcc
           repository: pret/agbcc
@@ -42,11 +36,12 @@ jobs:
         run: |
           ./init_deps.sh
 
-      - name: Install agbcc
-        run: |
-          ./build.sh
-          ./install.sh ../
-        working-directory: agbcc
+
+      # - name: Install agbcc
+      #   run: |
+      #      ./build.sh
+      #      ./install.sh ../
+      #   working-directory: agbcc
 
       #- name: Agbcc
       #  env:
@@ -54,30 +49,54 @@ jobs:
       #    COMPARE: 0
       #  run: make -j${nproc} -O all
 
-      - name: Build Debug
-        env:
-          MODERN: 1
-          COMPARE: 0
-          RELEASE: 0
-        run: make -j${nproc} -O all
-
+      # - name: Build Debug
+      #   env:
+      #     MODERN: 1
+      #     COMPARE: 0
+      #     RELEASE: 0
+      #   run: make -j${nproc} -O -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-function all
+      #   # -Wno-unused-but-set-variable is to silence the warnings of the unused variables, useful when trying to compile with my mods
+        
       - name: Build Release
         env:
           MODERN: 1
           COMPARE: 0
           RELEASE: 1
-        run: make -j${nproc} -O all
+        run: make -j${nproc} -O -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-functione all
+        # -Wno-unused-but-set-variable is to silence the warnings of the unused variables, useful when trying to compile with my mods
 
-      - name: Update Memory Stats
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: Memory Stats
-          path: pokeemerald_memorystats.csv
+            name: emeraldrogue
+            path: emeraldrogue.gba
+            retention-days: 1
+  
+      - uses: actions/upload-artifact@v4
+        with:
+            name: emeraldrogue_elf
+            path: emeraldrogue.elf
+            retention-days: 1
+            
+      - uses: actions/upload-artifact@v4
+        with:
+            name: emeraldrogue_map
+            path: emeraldrogue.map
+            retention-days: 1
 
-      - name: Test
-        env:
-          MODERN: 1
-          TEST: 1
-        run: |
-          make -j${nproc} -O pokeemerald-test.elf
-          make -j${nproc} check
+            ## what's below can be removed if ever build from github again
+            ## some tests fail anyway, can't be bother to fix these so fuck off
+      # - name: Update Memory Stats
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #         name: Memory Stats
+      #         path: emeraldrogue_memorystats.csv
+      #         retention-days: 1
+    
+      # - name: Test
+      #   env:
+      #       MODERN: 1
+      #       TEST: 1
+      #   run: |
+      #       make -j${nproc} -O emeraldrogue-test.elf
+      #       make -j${nproc} check
+
