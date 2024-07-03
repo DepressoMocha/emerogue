@@ -5953,6 +5953,8 @@ void RemoveAnyFaintedMons(bool8 keepItems)
     u8 write = 0;
     bool8 skipReleasing = FALSE;
 
+    return; // Keep fainted mons
+
     if(Rogue_IsRunActive())
     {
         // If we're finished, we don't want to release any mons, just check if anything has fainted or not
@@ -6840,8 +6842,8 @@ static void TryRestorePartyHeldItems(bool8 allowThief)
             item = gRogueRun.partyHeldItems[i];
 
             // Ignore fainted mons
-            if(GetMonData(&gPlayerParty[i], MON_DATA_HP) == 0)
-                continue;
+            //if(GetMonData(&gPlayerParty[i], MON_DATA_HP) == 0)
+            //    continue;
 
             // We're still holding the same item no need to continue
             if(GetMonData(&gPlayerParty[i], MON_DATA_HELD_ITEM) == item)
@@ -6854,7 +6856,7 @@ static void TryRestorePartyHeldItems(bool8 allowThief)
                     continue;
             }
 
-            // Consume berries but attempt to auto re-equip from bag
+            /*// Consume berries but attempt to auto re-equip from bag
             if(item >= FIRST_BERRY_INDEX && item <= LAST_BERRY_INDEX)
             {
                 if(RemoveBagItem(item, 1))
@@ -6864,7 +6866,7 @@ static void TryRestorePartyHeldItems(bool8 allowThief)
                     failBerryIcon = item;
                     item = ITEM_NONE;
                 }
-            }
+            }*/
 
             SetMonData(&gPlayerParty[i], MON_DATA_HELD_ITEM, &item);
         }
@@ -7857,8 +7859,8 @@ static void TryApplyCustomMon(u16 species, struct Pokemon* mon)
 
         // If we're here, we're allowed to apply unique species
 
-        // Only a chance to apply
-        if((Random() % 2) == 0)
+        // Only a chance to apply if not legendary
+        if ((gRogueAdvPath.currentRoomType == ADVPATH_ROOM_LEGENDARY) || ((Random() % 2) == 0))
         {
             u32 customMonId = RogueGift_TryFindEnabledDynamicCustomMonForSpecies(species);
 
@@ -7992,8 +7994,8 @@ void Rogue_ModifyWildMon(struct Pokemon* mon)
         {
             FillWithRoamerState(mon, GetMonData(mon, MON_DATA_LEVEL));
 
-            // TODO - Consider interaction for roamer 
-            //TryApplyCustomMon(species, mon);
+            // TODO - Consider interaction for roamer kleen: I made them not flee when they're unique, all good.
+            TryApplyCustomMon(species, mon);
         }
         else if(gRogueAdvPath.currentRoomType == ADVPATH_ROOM_GAMESHOW)
         {
@@ -8037,7 +8039,7 @@ void Rogue_ModifyWildMon(struct Pokemon* mon)
             u16 moveId;
 
             // TODO - Consider interaction for roamer 
-            //TryApplyCustomMon(species, mon);
+            TryApplyCustomMon(species, mon);
 
             // Replace roar with hidden power to avoid pokemon roaring itself out of battle
             for (i = 0; i < MAX_MON_MOVES; i++)

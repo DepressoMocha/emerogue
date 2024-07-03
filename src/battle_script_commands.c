@@ -1285,7 +1285,7 @@ bool32 ShouldTeraShellDistortTypeMatchups(u32 move, u32 battlerDef)
     GET_MOVE_TYPE(move, moveType);
     if (!(gBattleStruct->distortedTypeMatchups & gBitTable[battlerDef])
      && GetBattlerAbility(battlerDef) == ABILITY_TERA_SHELL
-     && gBattleMons[battlerDef].species == SPECIES_TERAPAGOS_TERASTAL
+     /*&& gBattleMons[battlerDef].species == SPECIES_TERAPAGOS_TERASTAL*/
      && !IS_MOVE_STATUS(move)
      && !(gMoveResultFlags & MOVE_RESULT_NO_EFFECT)
      && gBattleMons[battlerDef].hp == gBattleMons[battlerDef].maxHP
@@ -15521,7 +15521,7 @@ static void Cmd_handleballthrow(void)
         if (gBattleResults.catchAttempts[gLastUsedItem - FIRST_BALL] < 255)
             gBattleResults.catchAttempts[gLastUsedItem - FIRST_BALL]++;
 
-        if (Rogue_UseSafariBattle() || odds > 254 || ballMultiplier == 12345) // mon caught
+        if (1) // mon caught
         {
             BtlController_EmitBallThrowAnim(gBattlerAttacker, BUFFER_A, Rogue_UseSafariBattle() ? BALL_1_SHAKE : BALL_3_SHAKES_SUCCESS);
             MarkBattlerForControllerExec(gBattlerAttacker);

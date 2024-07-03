@@ -27,6 +27,7 @@
 
 #include "rogue_controller.h"
 #include "rogue_trainers.h"
+#include "rogue_gifts.h"
 
 #define AI_ACTION_DONE          (1 << 0)
 #define AI_ACTION_FLEE          (1 << 1)

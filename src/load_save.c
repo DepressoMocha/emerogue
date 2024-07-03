@@ -86,6 +86,7 @@ void MoveSaveBlocks_ResetHeap(void)
 {
     void *vblankCB, *hblankCB;
     u32 encryptionKey;
+    
     struct SaveBlock2 *saveBlock2Copy;
     struct SaveBlock1 *saveBlock1Copy;
     struct PokemonStorage *pokemonStorageCopy;
@@ -101,7 +102,7 @@ void MoveSaveBlocks_ResetHeap(void)
     saveBlock1Copy = (struct SaveBlock1 *)(gHeap + sizeof(struct SaveBlock2));
     pokemonStorageCopy = (struct PokemonStorage *)(gHeap + sizeof(struct SaveBlock2) + sizeof(struct SaveBlock1));
 
-    // backup the saves.
+    /*// backup the saves.
     *saveBlock2Copy = *gSaveBlock2Ptr;
     *saveBlock1Copy = *gSaveBlock1Ptr;
     *pokemonStorageCopy = *gPokemonStoragePtr;
@@ -117,7 +118,7 @@ void MoveSaveBlocks_ResetHeap(void)
     // restore saveblock data since the pointers changed
     *gSaveBlock2Ptr = *saveBlock2Copy;
     *gSaveBlock1Ptr = *saveBlock1Copy;
-    *gPokemonStoragePtr = *pokemonStorageCopy;
+    *gPokemonStoragePtr = *pokemonStorageCopy;*/
 
     // Must be done after copy back, as the ptrs can dynamically change
     UpdateBagItemsPointers();
@@ -131,7 +132,8 @@ void MoveSaveBlocks_ResetHeap(void)
     gMain.vblankCallback = vblankCB;
 
     // create a new encryption key
-    encryptionKey = (Random() << 16) + (Random());
+    
+    encryptionKey = 0; // Stop encrypting
     ApplyNewEncryptionKeyToAllEncryptedData(encryptionKey);
     gSaveBlock2Ptr->encryptionKey = encryptionKey;
 }

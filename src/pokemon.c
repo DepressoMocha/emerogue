@@ -2560,14 +2560,50 @@ u8 GetSpeciesBaseStat(u16 species, u8 statIndex)
 u8 GetDataPokemonType(struct Pokemon *mon, u8 customtype)
 {
     u8 type = GetMonData(mon, customtype, NULL);
-    if (customtype == MON_DATA_CUSTOM_TYPE1)
+    u16 item = GetMonData(mon, MON_DATA_HELD_ITEM, NULL);
+    u16 ability = GetMonData(mon, MON_DATA_ABILITY, NULL);
+
+    if (type != 0)
     {
-    type = (type != 0) ? type & 0x3F : gSpeciesInfo[GetMonData(mon, MON_DATA_SPECIES, NULL)].types[0];
+        type = type & DYNAMIC_TYPE_MASK;
+    }
+    else if (ability == ABILITY_MULTITYPE)
+    {
+        switch (item)
+        {
+            case ITEM_FIST_PLATE:   case ITEM_FIGHTINIUM_Z: type = TYPE_FIGHTING; break;
+            case ITEM_SKY_PLATE:    case ITEM_FLYINIUM_Z:   type = TYPE_FLYING; break;
+            case ITEM_TOXIC_PLATE:  case ITEM_POISONIUM_Z:  type = TYPE_POISON; break;
+            case ITEM_STONE_PLATE:  case ITEM_ROCKIUM_Z:    type = TYPE_ROCK; break;
+            case ITEM_EARTH_PLATE:  case ITEM_GROUNDIUM_Z:  type = TYPE_GROUND; break;
+            case ITEM_INSECT_PLATE: case ITEM_BUGINIUM_Z:   type = TYPE_BUG; break;
+            case ITEM_SPOOKY_PLATE: case ITEM_GHOSTIUM_Z:   type = TYPE_GHOST; break;
+            case ITEM_IRON_PLATE:   case ITEM_STEELIUM_Z:   type = TYPE_STEEL; break;
+            case ITEM_FLAME_PLATE:  case ITEM_FIRIUM_Z:     type = TYPE_FIRE; break;
+            case ITEM_SPLASH_PLATE: case ITEM_WATERIUM_Z:   type = TYPE_WATER; break;
+            case ITEM_MEADOW_PLATE: case ITEM_GRASSIUM_Z:   type = TYPE_GRASS; break;
+            case ITEM_ZAP_PLATE:    case ITEM_ELECTRIUM_Z:  type = TYPE_ELECTRIC; break;
+            case ITEM_MIND_PLATE:   case ITEM_PSYCHIUM_Z:   type = TYPE_PSYCHIC; break;
+            case ITEM_ICICLE_PLATE: case ITEM_ICIUM_Z:      type = TYPE_ICE; break;
+            case ITEM_DRACO_PLATE:  case ITEM_DRAGONIUM_Z:  type = TYPE_DRAGON; break;
+            case ITEM_DREAD_PLATE:  case ITEM_DARKINIUM_Z:  type = TYPE_DARK; break;
+            case ITEM_PIXIE_PLATE:  case ITEM_FAIRIUM_Z:    type = TYPE_FAIRY; break;
+            default:
+                if (customtype == MON_DATA_CUSTOM_TYPE1)
+                    type = gSpeciesInfo[GetMonData(mon, MON_DATA_SPECIES, NULL)].types[0];
+                else
+                    type = gSpeciesInfo[GetMonData(mon, MON_DATA_SPECIES, NULL)].types[1];
+                break;
+        }
     }
     else
     {
-    type = (type != 0) ? type & 0x3F : gSpeciesInfo[GetMonData(mon, MON_DATA_SPECIES, NULL)].types[1];
+        if (customtype == MON_DATA_CUSTOM_TYPE1)
+            type = gSpeciesInfo[GetMonData(mon, MON_DATA_SPECIES, NULL)].types[0];
+        else
+            type = gSpeciesInfo[GetMonData(mon, MON_DATA_SPECIES, NULL)].types[1];
     }
+
     return type;
 }
 

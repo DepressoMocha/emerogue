@@ -1746,7 +1746,7 @@ void Rogue_HealAlivePlayerParty()
     for(i = 0; i < gPlayerPartyCount; i++)
     {
         u16 currHp = GetMonData(&gPlayerParty[i], MON_DATA_HP);
-        if(currHp != 0)
+        // if(currHp != 0) Keep fainted mon
         {
             u16 maxHP = GetMonData(&gPlayerParty[i], MON_DATA_MAX_HP);
             arg[0] = maxHP;

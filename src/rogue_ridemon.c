@@ -351,7 +351,7 @@ bool8 Rogue_HandleRideMonInput()
                     PlaySE(SE_FAILURE);
                 }
             }
-            else if(JOY_NEW(R_BUTTON))
+            /*else if(JOY_NEW(R_BUTTON))
             {
                 if(CanCycleRideMons())
                 {
@@ -362,7 +362,7 @@ bool8 Rogue_HandleRideMonInput()
                 {
                     PlaySE(SE_FAILURE);
                 }
-            }
+            }*/
         }
     }
 
@@ -1291,7 +1291,7 @@ void ForceRunRidemonTrappedCheck();
 
 static void PlayerOnRideMonNotMoving(u8 direction, u16 newKeys, u16 heldKeys)
 {
-    if(newKeys & B_BUTTON && (Rogue_IsRideMonFlying() || Rogue_CanRideMonFly()))
+    if(newKeys & R_BUTTON && (Rogue_IsRideMonFlying() || Rogue_CanRideMonFly()))
     {
         // Toggle between flying modes
         bool8 desiredFlyState = !sRideMonData.rideObjects[RIDE_OBJECT_PLAYER].state.flyingState;

@@ -47,6 +47,7 @@ void RogueMonQuery_IsOfGeneration(u8 func, u32 generationFlags);
 void RogueMonQuery_EvosContainType(u8 func, u32 typeFlags);
 void RogueMonQuery_ContainsPresetFlags(u8 func, u32 flags);
 void RogueMonQuery_IsLegendary(u8 func);
+void RogueMonQuery_IsLegendaryImpossibleToEncounter(u8 func);
 void RogueMonQuery_IsLegendaryWithPresetFlags(u8 func, u32 flags);
 void RogueMonQuery_IsParadox(u8 func);
 void RogueMonQuery_IsBoxLegendary(u8 func);

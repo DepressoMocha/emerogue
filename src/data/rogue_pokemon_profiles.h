@@ -147149,16 +147149,16 @@ static struct RoguePokemonCompetitiveSet const sCompetitiveSets_SPECIES_MANAPHY[
 static struct LevelUpMove const sLevelUpMoves_SPECIES_DARKRAI[] = 
 {
 	{ .move=MOVE_DISABLE, .level=1 },
+	{ .move=MOVE_DARK_VOID, .level=1 },
+	{ .move=MOVE_NASTY_PLOT, .level=1 },
+	{ .move=MOVE_DREAM_EATER, .level=1 },
+	{ .move=MOVE_DARK_PULSE, .level=1 },
 	{ .move=MOVE_QUICK_ATTACK, .level=11 },
 	{ .move=MOVE_HYPNOSIS, .level=20 },
 	{ .move=MOVE_SUCKER_PUNCH, .level=29 },
 	{ .move=MOVE_NIGHT_SHADE, .level=38 },
 	{ .move=MOVE_DOUBLE_TEAM, .level=47 },
 	{ .move=MOVE_HAZE, .level=57 },
-	{ .move=MOVE_DARK_VOID, .level=66 },
-	{ .move=MOVE_NASTY_PLOT, .level=75 },
-	{ .move=MOVE_DREAM_EATER, .level=84 },
-	{ .move=MOVE_DARK_PULSE, .level=93 },
 	{ .move=MOVE_NONE, .level=0 },
 };
 
