@@ -1939,7 +1939,7 @@ BattleScript_SpectralThiefSteal::
 	setbyte sB_ANIM_ARG2, 0
 	playanimation BS_ATTACKER, B_ANIM_STATS_CHANGE, sB_ANIM_ARG1
 	spectralthiefprintstats
-	return
+	goto BattleScript_HitFromDamageCalc
 
 BattleScript_EffectSpectralThief:
 	setmoveeffect MOVE_EFFECT_SPECTRAL_THIEF
@@ -3459,6 +3459,8 @@ BattleScript_HitFromAtkString::
 	ppreduce
 BattleScript_HitFromCritCalc::
 	critcalc
+	handleSpectralThief BattleScript_SpectralThiefSteal@Spectral thief is special among the special cases, so we'll use this solution for now
+BattleScript_HitFromDamageCalc::
 	damagecalc
 	adjustdamage
 BattleScript_HitFromAtkAnimation::
@@ -3790,6 +3792,8 @@ BattleScript_EffectMindBlown::
 	jumpifbyte CMP_GREATER_THAN, sB_ANIM_TARGETS_HIT, 0, BattleScript_EffectMindBlown_NoHpLoss
 	jumpifabilitypresent ABILITY_DAMP, BattleScript_MindBlownDamp
 	jumpifmorethanhalfHP BS_ATTACKER, BattleScript_EffectMindBlown_HpDown
+	setbyte sMULTIHIT_EFFECT, 1 @ Note to not faint the attacker
+	jumpifability BS_ATTACKER, ABILITY_MAGIC_GUARD, BattleScript_EffectMindBlown_AnimDmgNoFaint
 	setbyte sMULTIHIT_EFFECT, 0 @ Note to faint the attacker
 	instanthpdrop BS_ATTACKER
 	waitstate
@@ -8717,6 +8721,7 @@ BattleScript_MoveEffectRecoil::
 	jumpifmove MOVE_STRUGGLE, BattleScript_DoRecoil
 	jumpifability BS_ATTACKER, ABILITY_ROCK_HEAD, BattleScript_RecoilEnd
 BattleScript_DoRecoil::
+	jumpifability BS_ATTACKER, ABILITY_MAGIC_GUARD, BattleScript_RecoilEnd
 	orword gHitMarker, HITMARKER_IGNORE_SUBSTITUTE | HITMARKER_PASSIVE_DAMAGE | HITMARKER_IGNORE_DISGUISE
 	healthbarupdate BS_ATTACKER
 	datahpupdate BS_ATTACKER
@@ -9763,6 +9768,7 @@ BattleScript_GooeyActivates::
 	call BattleScript_AbilityPopUp
 	swapattackerwithtarget  @ for defiant, mirror armor
 	seteffectsecondary
+	swapattackerwithtarget @ kleen: restore the target/attacker, for knock off and I imagine others 
 	return
 
 BattleScript_AbilityStatusEffect::

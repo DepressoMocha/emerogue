@@ -4,7 +4,6 @@
 #include "main.h"
 #include "malloc.h"
 #include "sound.h"
-#include "string.h"
 #include "string_util.h"
 
 #include "rogue_baked.h"

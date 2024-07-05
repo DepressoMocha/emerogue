@@ -3035,7 +3035,7 @@ static const u8 sEsperWingDescription[] = _(
 
 static const u8 sBitterMaliceDescription[] = _(
     "A spine-chilling resentment.\n"
-    "May lower the foe's Attack.");
+    "Lowers the foe's Attack.");
 
 static const u8 sShelterDescription[] = _(
     "The user hardens their skin,\n"

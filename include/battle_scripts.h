@@ -7,6 +7,7 @@ extern const u8 BattleScript_MirrorHerbCopyStatChange[];
 extern const u8 BattleScript_MirrorHerbCopyStatChangeEnd2[];
 extern const u8 BattleScript_NotAffected[];
 extern const u8 BattleScript_HitFromCritCalc[];
+extern const u8 BattleScript_HitFromCalc[];
 extern const u8 BattleScript_MoveEnd[];
 extern const u8 BattleScript_MakeMoveMissed[];
 extern const u8 BattleScript_PrintMoveMissed[];
@@ -508,7 +509,6 @@ extern const u8 BattleScript_TheRainbowDisappeared[];
 extern const u8 BattleScript_HurtByTheSeaOfFire[];
 extern const u8 BattleScript_TheSeaOfFireDisappeared[];
 extern const u8 BattleScript_TheSwampDisappeared[];
-extern const u8 BattleScript_ItemRestoreHP_Party[];
 
 // zmoves
 extern const u8 BattleScript_ZMoveActivateDamaging[];
