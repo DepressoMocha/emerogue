@@ -236,6 +236,7 @@ static void Task_SwapToPage(u8);
 static void Task_PageFadeIn(u8);
 static void Task_PageWaitForKeyPress(u8);
 static void Task_PageFadeOutAndExit(u8);
+static void Task_PageFadeOutExitAndRelaunch(u8);
 static void DisplayTitleScreenCountersText(void);
 static void DisplayTitleDexVariantText(void);
 static void DisplayMonEntryText(void);
@@ -890,6 +891,28 @@ static void Task_PageWaitForKeyPress(u8 taskId)
     
     default:
         break;
+    }
+}
+
+static void Task_PageFadeOutExitAndRelaunch(u8 taskId)
+{
+    if (!gPaletteFade.active)
+    {
+        if(sPokedexViewReq.dexVariantToRestore != POKEDEX_INVALID_VARIANT)
+            RoguePokedex_SetDexVariant(sPokedexViewReq.dexVariantToRestore);
+
+        DestroyPageResources(sPokedexMenu->currentPage, PAGE_NONE);
+
+        Free(sPokedexMenu);
+        sPokedexMenu = NULL;
+
+        Free(sTilemapBufferPtr);
+        sTilemapBufferPtr = NULL;
+        DestroyTask(taskId);
+
+        FreeAllWindowBuffers();
+
+        SetupPokedexViewDefault();
     }
 }
 
@@ -2972,8 +2995,9 @@ static void Overview_HandleInput(u8 taskId)
         }
         else
         {
-            sPokedexMenu->desiredPage = PAGE_TITLE_SCREEN;
-            gTasks[taskId].func = Task_SwapToPage;
+
+            BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+            gTasks[taskId].func = Task_PageFadeOutExitAndRelaunch;
 
             PlaySE(SE_SELECT);
         }
