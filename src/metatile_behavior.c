@@ -1483,3 +1483,12 @@ bool8 MetatileBehavior_IsRockStairs(u8 metatileBehavior)
     else
         return FALSE;
 }
+
+bool8 MetatileBehavior_IsRidemonOnCliff(u8 metatileBehavior)
+{
+    if (metatileBehavior == MB_MOUNTAIN_TOP 
+     || metatileBehavior == MB_BRIDGE_OVER_OCEAN)
+        return TRUE;
+    else
+        return FALSE;
+}
