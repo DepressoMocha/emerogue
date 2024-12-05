@@ -1594,7 +1594,7 @@ void Rogue_PushPopup_UnlockedShopItem(u16 itemId)
     // Hacked special case
     // We unlock multiple of these items at once, but we only want to display a single popup for "unlocked all of xyz"
 #ifdef ROGUE_EXPANSION
-    if(itemId >= ITEM_FLAME_PLATE && itemId <= ITEM_PIXIE_PLATE)
+    if((itemId >= ITEM_FLAME_PLATE && itemId <= ITEM_PIXIE_PLATE) || itemId == ITEM_LEGEND_PLATE)
     {
         if(itemId == ITEM_IRON_PLATE)
         {

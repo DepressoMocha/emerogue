@@ -272,6 +272,7 @@ const u32 *const gItemIconTable[ITEMS_COUNT + 1][2] =
     [ITEM_PINK_NECTAR] = {gItemIcon_PinkNectar, gItemIconPalette_PinkNectar},
     [ITEM_PURPLE_NECTAR] = {gItemIcon_PurpleNectar, gItemIconPalette_PurpleNectar},
     // Plates
+    [ITEM_LEGEND_PLATE] = {gItemIcon_IronPlate, gItemIconPalette_IronPlate},
     [ITEM_FLAME_PLATE] = {gItemIcon_FlamePlate, gItemIconPalette_FlamePlate},
     [ITEM_SPLASH_PLATE] = {gItemIcon_SplashPlate, gItemIconPalette_SplashPlate},
     [ITEM_ZAP_PLATE] = {gItemIcon_ZapPlate, gItemIconPalette_ZapPlate},

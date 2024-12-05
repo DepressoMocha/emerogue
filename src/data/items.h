@@ -2952,6 +2952,19 @@ const struct Item gItems[] =
 
 // Plates
 
+    [ITEM_LEGEND_PLATE] =
+    {
+        .name = _("Legend Plate"),
+        .price = 1000,
+        .holdEffect = HOLD_EFFECT_PLATE,
+        .holdEffectParam = 0,
+        .description = sLegendPlateDesc,
+        .pocket = POCKET_ITEMS,
+        .type = ITEM_USE_BAG_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        .flingPower = 90,
+    },
+
     [ITEM_FLAME_PLATE] =
     {
         .name = _("Flame Plate"),

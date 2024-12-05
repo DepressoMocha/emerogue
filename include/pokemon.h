@@ -243,6 +243,7 @@ struct BattlePokemon
     /*0x59*/ u8 metLevel;
              u8 genderFlag : 1;
              u8 nature;
+             bool8 legendPlateDone;
 };
 
 struct Evolution

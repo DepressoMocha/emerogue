@@ -1337,6 +1337,11 @@ static const u8 sPurpleNectarDesc[] = _(
     "of certain Pokémon.");
 
 // Plates
+static const u8 sLegendPlateDesc[] = _(
+    "Allows Arceus to\n"
+    "gain the power of\n"
+    "every type there is.");
+
 static const u8 sFlamePlateDesc[] = _(
     "A tablet that ups\n"
     "the power of\n"

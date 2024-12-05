@@ -1224,7 +1224,7 @@ u16 Rogue_GetPrice(u16 itemId)
     }
 
     // Plates
-    if(itemId >= ITEM_FLAME_PLATE && itemId <= ITEM_PIXIE_PLATE)
+    if((itemId >= ITEM_FLAME_PLATE && itemId <= ITEM_PIXIE_PLATE) || itemId == ITEM_LEGEND_PLATE)
     {
         applyDefaultHubIncrease = TRUE;
         price = HELD_ITEM_MID_PRICE;
@@ -1523,7 +1523,7 @@ void Rogue_ModifyItem(u16 itemId, struct Item* outItem)
         outItem->pocket = POCKET_STONES;
     }
 
-    if(itemId >= ITEM_FLAME_PLATE && itemId <= ITEM_PIXIE_PLATE)
+    if((itemId >= ITEM_FLAME_PLATE && itemId <= ITEM_PIXIE_PLATE) || itemId == ITEM_LEGEND_PLATE)
     {
         outItem->pocket = POCKET_STONES;
     }

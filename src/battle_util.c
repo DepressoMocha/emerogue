@@ -4327,17 +4327,20 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
     if (gBattlerAttacker >= gBattlersCount)
         gBattlerAttacker = battler;
 
-    if (special)
+    if (special && special != ABILITYEFFECT_SIMULATION)
         gLastUsedAbility = special;
     else
         gLastUsedAbility = GetBattlerAbility(battler);
 
-    if (moveArg)
+    if (moveArg && special != ABILITYEFFECT_SIMULATION)
         move = moveArg;
     else
         move = gCurrentMove;
 
-    GET_MOVE_TYPE(move, moveType);
+    if (special == ABILITYEFFECT_SIMULATION)
+        moveType = moveArg & DYNAMIC_TYPE_MASK;
+    else
+        GET_MOVE_TYPE(move, moveType);
 
     switch (caseID)
     {
@@ -5321,27 +5324,32 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
                 if (moveType == TYPE_FIRE
                     && (B_FLASH_FIRE_FROZEN >= GEN_5 || !(gBattleMons[battler].status1 & STATUS1_FREEZE)))
                 {
-                    if (!(gBattleResources->flags->flags[battler] & RESOURCE_FLAG_FLASH_FIRE))
+                    if (special != ABILITYEFFECT_SIMULATION)
                     {
-                        gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_FLASH_FIRE_BOOST;
-                        if (gProtectStructs[gBattlerAttacker].notFirstStrike)
-                            gBattlescriptCurrInstr = BattleScript_FlashFireBoost;
-                        else
-                            gBattlescriptCurrInstr = BattleScript_FlashFireBoost_PPLoss;
+                        if (!(gBattleResources->flags->flags[battler] & RESOURCE_FLAG_FLASH_FIRE))
+                        {
+                            gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_FLASH_FIRE_BOOST;
+                            if (gProtectStructs[gBattlerAttacker].notFirstStrike)
+                                gBattlescriptCurrInstr = BattleScript_FlashFireBoost;
+                            else
+                                gBattlescriptCurrInstr = BattleScript_FlashFireBoost_PPLoss;
 
-                        gBattleResources->flags->flags[battler] |= RESOURCE_FLAG_FLASH_FIRE;
-                        effect = 3;
+                            gBattleResources->flags->flags[battler] |= RESOURCE_FLAG_FLASH_FIRE;
+                            effect = 3;
+                        }
+                        else
+                        {
+                            gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_FLASH_FIRE_NO_BOOST;
+                            if (gProtectStructs[gBattlerAttacker].notFirstStrike)
+                                gBattlescriptCurrInstr = BattleScript_FlashFireBoost;
+                            else
+                                gBattlescriptCurrInstr = BattleScript_FlashFireBoost_PPLoss;
+
+                            effect = 3;
+                        }
                     }
                     else
-                    {
-                        gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_FLASH_FIRE_NO_BOOST;
-                        if (gProtectStructs[gBattlerAttacker].notFirstStrike)
-                            gBattlescriptCurrInstr = BattleScript_FlashFireBoost;
-                        else
-                            gBattlescriptCurrInstr = BattleScript_FlashFireBoost_PPLoss;
-
                         effect = 3;
-                    }
                 }
                 break;
             case ABILITY_WELL_BAKED_BODY:
@@ -5357,6 +5365,9 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
                     effect = 1;
                 break;
             }
+
+            if (special == ABILITYEFFECT_SIMULATION && effect) // if move type is absorbed, we should use another type to hit
+                return effect;
 
             if (effect == 1) // Drain Hp ability.
             {
@@ -9367,7 +9378,7 @@ static inline u32 CalcMoveBasePowerAfterModifiers(u32 move, u32 battlerAtk, u32 
         }
         break;
     case HOLD_EFFECT_PLATE:
-        if (moveType == ItemId_GetSecondaryId(gBattleMons[battlerAtk].item))
+        if (moveType == ItemId_GetSecondaryId(gBattleMons[battlerAtk].item) && gBattleMons[battlerAtk].item != ITEM_LEGEND_PLATE)
             modifier = uq4_12_multiply(modifier, holdEffectModifier);
         break;
     case HOLD_EFFECT_PUNCHING_GLOVE:
@@ -10943,8 +10954,12 @@ bool32 CanBattlerGetOrLoseItem(u32 battler, u16 itemId)
     u16 species = gBattleMons[battler].species;
     u16 holdEffect = ItemId_GetHoldEffect(itemId);
 
+
+
     // Mail can be stolen now
     if (itemId == ITEM_ENIGMA_BERRY_E_READER)
+        return FALSE;
+    else if (!(gBattleMons[gBattlerAttacker].status2 & STATUS2_TRANSFORMED) && GET_BASE_SPECIES_ID(species) == SPECIES_ARCEUS && itemId == ITEM_LEGEND_PLATE)
         return FALSE;
     else if (DoesSpeciesUseHoldItemToChangeForm(species, itemId))
         return FALSE;

@@ -49,7 +49,7 @@
 #define ITEM_RESERVED_6 35
 #define ITEM_RESERVED_7 36
 #define ITEM_RESERVED_8 37
-#define ITEM_RESERVED_9 38
+#define ITEM_LEGEND_PLATE 38 // thanks for the reserved items abbie, didn't want to mess with save data! Kleen.
 
 // Medicine
 #define ITEM_POTION 39
