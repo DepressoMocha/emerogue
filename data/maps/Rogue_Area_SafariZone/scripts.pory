@@ -1,3 +1,5 @@
+const VAR_SAFARI_INDEX = VAR_0x8008
+
 mapscripts Rogue_Area_SafariZone_MapScripts {}
 
 script Rogue_Area_SafariZone_TalkSign
@@ -10,5 +12,26 @@ script Rogue_Area_SafariZone_TalkSign
     special(Special_SelectSafariMonInPokedex)
     waitstate
 
+    if(var(VAR_RESULT) != ROGUE_SAFARI_TOTAL_MONS)
+    {
+        copyvar(VAR_SAFARI_INDEX, VAR_RESULT)
+        special(Rogue_EnqueueSafariBattle)
+        call(Rogue_Area_SafariZone_BattleSummonMon)
+    }
+
+
     release
+}
+
+script Rogue_Area_SafariZone_BattleSummonMon
+{
+    playmoncry(VAR_RESULT, CRY_MODE_ENCOUNTER)
+    msgbox(format("!!!"))
+
+    waitmoncry
+
+    seteventmon(VAR_RESULT, 1, ITEMS_COUNT, FALSE)
+    special(BattleSetup_StartWildBattle)
+    waitstate
+    return
 }
