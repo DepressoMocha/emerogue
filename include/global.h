@@ -652,7 +652,7 @@ struct RamScriptData
     u8 mapGroup;
     u8 mapNum;
     u8 objectId;
-    u8 script[995];
+    u8 script[1];
     //u8 padding;
 };
 
@@ -1012,7 +1012,6 @@ struct SaveBlock1
     /*0x271C*/ u8 playerRoomDecorations[DECOR_MAX_PLAYERS_HOUSE];
     /*0x2728*/ u8 playerRoomDecorationPositions[DECOR_MAX_PLAYERS_HOUSE];
                u16 trainerCardSpecies[PARTY_SIZE];
-    /*0x2734*/ u8 unusedDecor[138]; // previously decorationXYZ
     /*0x27CC*/ TVShow tvShows[TV_SHOWS_COUNT];
     /*0x2B50*/ PokeNews pokeNews[POKE_NEWS_COUNT];
     /*0x2B90*/ u16 outbreakPokemonSpecies;
@@ -1044,6 +1043,7 @@ struct SaveBlock1
     /*0x3B58*/ LilycoveLady lilycoveLady;
     /*0x3B98*/ struct TrainerNameRecord trainerNameRecords[20];
     /*0x3C88*/ u8 registeredTexts[UNION_ROOM_KB_ROW_COUNT][21];
+    u8 testSize[1];
     /*0x3D70*/ struct WaldaPhrase waldaPhrase;
     // sizeof: 0x3D88
 };

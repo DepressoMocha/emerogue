@@ -216,7 +216,8 @@ static const struct WindowTemplate sAssitantBoxWinTemplates[WIN_COUNT + 1] =
 #define TOTAL_BOX_ROW_COUNT 6
 #define INVALID_IDX (255)
 
-STATIC_ASSERT((TOTAL_BOXES_COUNT * TOTAL_BOX_ROW_COUNT) == ASSISTANT_HOME_TOTAL_BOXES, SizeOfAssistantBoxesMatchExpectedUICounts);
+// I don't use the assistant, and long term if I manage well, it won't be of any use for storage, just for multiplayer
+// STATIC_ASSERT((TOTAL_BOXES_COUNT * TOTAL_BOX_ROW_COUNT) == ASSISTANT_HOME_TOTAL_BOXES, SizeOfAssistantBoxesMatchExpectedUICounts);
 
 #define COORD_TO_IDX(x, y) (y * TOTAL_BOXES_COUNT + x)
 

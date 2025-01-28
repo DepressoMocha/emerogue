@@ -19,7 +19,12 @@
 #include "rogue_ridemon.h"
 #include "rogue_save.h"
 
-#define ROGUE_SAVE_BLOCK_CAPACITY (sizeof(struct BoxPokemon) * IN_BOX_COUNT * LEFTOVER_BOXES_COUNT)
+#define ROGUE_SAVE_BLOCK_CAPACITY   ((SECTOR_DATA_SIZE)*(SECTOR_ID_PKMN_STORAGE_END - SECTOR_ID_PKMN_STORAGE_START +1) \
+                                    - sizeof(struct __UseablePokemonStorage))
+
+                                    // maybe this is better ??
+// #define ROGUE_SAVE_BLOCK_CAPACITY   (sizeof(struct PokemonStorage) - sizeof(struct __UseablePokemonStorage))
+
 
 enum
 {
@@ -48,25 +53,47 @@ struct RogueRunRestoreBlock
     u32 playTime;
 };
 
-STATIC_ASSERT(sizeof(struct RogueSaveBlock) < ROGUE_SAVE_BLOCK_CAPACITY, RogueSaveBlockSize);
+// For the following assertion, we're trying to account for serialization.
+// I don't like that it was done this way, it's hard to keep visibility on what's available as save space.
+// TODO : Just have RogueSaveBlock, RogueRunData, and potentially others directly raw saved. We don't really care
+// about save compatibility, we'll break it anyway.
+// Problem is if I myself release several patches. Then it might be better to keep serialization.
+// The solution would be to update the assert automatically to not miss a field or something.
+STATIC_ASSERT(
+    (sizeof(((struct RogueSaveBlock *)0)->saveVersion)
+    + sizeof(((struct RogueSaveBlock *)0)->questStates)
+    + sizeof(((struct RogueSaveBlock *)0)->campaignData)
+
+    + sizeof(((struct RogueSaveBlock *)0)->hubMap.areaBuiltFlags)
+    + sizeof(((struct RogueSaveBlock *)0)->hubMap.areaCoords)
+    + sizeof(((struct RogueSaveBlock *)0)->hubMap.upgradeFlags)
+    + sizeof(((struct RogueSaveBlock *)0)->hubMap.homeDecorations)
+    + sizeof(((struct RogueSaveBlock *)0)->hubMap.homeStyles)
+    + sizeof(((struct RogueSaveBlock *)0)->hubMap.homeWanderingMonSpecies)
+    + sizeof(((struct RogueSaveBlock *)0)->hubMap.weatherState)
+    + sizeof(((struct RogueSaveBlock *)0)->timeOfDayMinutes)
+    + sizeof(((struct RogueSaveBlock *)0)->seasonCounter)
+    + sizeof(((struct RogueSaveBlock *)0)->safariMons)
+    + sizeof(((struct RogueSaveBlock *)0)->daycarePokemon)
+    + sizeof(((struct RogueSaveBlock *)0)->difficultyConfig.toggleBits)
+    + sizeof(((struct RogueSaveBlock *)0)->difficultyConfig.rangeValues)
+    + sizeof(((struct RogueSaveBlock *)0)->dynamicUniquePokemon)
+    + sizeof(((struct RogueSaveBlock *)0)->safariMonCustomIds)
+    + sizeof(((struct RogueSaveBlock *)0)->monMasteryFlags)
+    + 1 /*isDebug*/
+    + sizeof(struct RogueDebugConfig)
+    + sizeof(struct RogueDebugConfig) /*twice, just in case*/
+    + sizeof(struct RogueRideMonState)
+    + sizeof(((struct RogueSaveBlock *)0)->adventureReplay)
+    + sizeof(gRngRogueValue)
+    + sizeof(struct RogueRunRestoreBlock)
+    + sizeof(struct RogueRunData)
+    + sizeof(struct RogueAdvPath) 
+    + sizeof(struct BoxPokemon) * 30 /*safety net. Idk where it is done, but there's about
+    the size of a boxe that is needed in here to check the right value. Maybe because serialization 
+    or alignment somewhere else? Idk*/) < ROGUE_SAVE_BLOCK_CAPACITY, RogueSaveBlockSize);
 
 static EWRAM_DATA struct RogueRunRestoreBlock sRunRestoreBlock = {0};
-
-static void FlipEncryptMemory(void* ptr, size_t size, u32 encryptionKey)
-{
-    if(encryptionKey)
-    {
-        size_t i;
-        u8* write;
-        u8* encryptionBytes = (u8*)&encryptionKey;
-
-        for(i = 0; i < size; ++i)
-        {
-            write = (u8*)(ptr) + i;
-            *write = *write ^ encryptionBytes[i % 4];
-        }
-    }
-}
 
 static bool8 UNUSED_RELEASE IsSerializeRangeValid(struct SaveBlockStream* block, size_t size)
 {
@@ -81,17 +108,9 @@ static void SerializeData(struct SaveBlockStream* block, void* ptr, size_t size)
     AGB_ASSERT(IsSerializeRangeValid(block, size));
 
     if(block->isWriteMode)
-    {
         memcpy(addr, ptr, size);
-
-        FlipEncryptMemory(addr, size, block->encryptionKey);
-    }
     else
-    {
         memcpy(ptr, addr, size);
-
-        FlipEncryptMemory(ptr, size, block->encryptionKey);
-    }
 
     block->offset += size;
 }

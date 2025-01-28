@@ -21,8 +21,6 @@
 
 static void ApplyNewEncryptionKeyToAllEncryptedData(u32 encryptionKey);
 
-#define SAVEBLOCK_MOVE_RANGE    128
-
 struct LoadedSaveData
 {
     struct ItemSlot items[BAG_ITEM_CAPACITY];
@@ -30,9 +28,9 @@ struct LoadedSaveData
 };
 
 // EWRAM DATA
-EWRAM_DATA struct SaveBlock2ASLR gSaveblock2 = {0};
-EWRAM_DATA struct SaveBlock1ASLR gSaveblock1 = {0};
-EWRAM_DATA struct PokemonStorageASLR gPokemonStorage = {0};
+EWRAM_DATA struct SaveBlock2 gSaveBlock2 = {0};    // Directly use SaveBlock2
+EWRAM_DATA struct SaveBlock1 gSaveBlock1 = {0};    // Directly use SaveBlock1
+EWRAM_DATA struct PokemonStorage gPokemonStorage = {0};  // Directly use PokemonStorage
 
 EWRAM_DATA struct LoadedSaveData gLoadedSaveData = {0};
 EWRAM_DATA u32 gLastEncryptionKey = 0;
@@ -60,24 +58,20 @@ void CheckForFlashMemory(void)
 
 void ClearSav2(void)
 {
-    CpuFill16(0, &gSaveblock2, sizeof(struct SaveBlock2ASLR));
+    CpuFill16(0, &gSaveBlock2, sizeof(struct SaveBlock2));
 }
 
 void ClearSav1(void)
 {
-    CpuFill16(0, &gSaveblock1, sizeof(struct SaveBlock1ASLR));
+    CpuFill16(0, &gSaveBlock1, sizeof(struct SaveBlock1));
 }
 
 // Offset is the sum of the trainer id bytes
 void SetSaveBlocksPointers(u16 offset)
 {
-    struct SaveBlock1** sav1_LocalVar = &gSaveBlock1Ptr;
-
-    offset = (offset + Random()) & (SAVEBLOCK_MOVE_RANGE - 4);
-
-    gSaveBlock2Ptr = (void *)(&gSaveblock2) + offset;
-    *sav1_LocalVar = (void *)(&gSaveblock1) + offset;
-    gPokemonStoragePtr = (void *)(&gPokemonStorage) + offset;
+    gSaveBlock2Ptr = &gSaveBlock2;
+    gSaveBlock1Ptr = &gSaveBlock1;
+    gPokemonStoragePtr = &gPokemonStorage;
 
     SetDecorationInventoriesPointers();
 }
@@ -98,11 +92,11 @@ void MoveSaveBlocks_ResetHeap(void)
     gMain.hblankCallback = NULL;
     gTrainerHillVBlankCounter = NULL;
 
-    saveBlock2Copy = (struct SaveBlock2 *)(gHeap);
+    /*saveBlock2Copy = (struct SaveBlock2 *)(gHeap);
     saveBlock1Copy = (struct SaveBlock1 *)(gHeap + sizeof(struct SaveBlock2));
     pokemonStorageCopy = (struct PokemonStorage *)(gHeap + sizeof(struct SaveBlock2) + sizeof(struct SaveBlock1));
 
-    /*// backup the saves.
+    // backup the saves.
     *saveBlock2Copy = *gSaveBlock2Ptr;
     *saveBlock1Copy = *gSaveBlock1Ptr;
     *pokemonStorageCopy = *gPokemonStoragePtr;

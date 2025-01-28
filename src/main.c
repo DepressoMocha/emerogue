@@ -208,8 +208,8 @@ static void InitMainCallbacks(void)
     gMain.vblankCounter2 = 0;
     gMain.callback1 = NULL;
     SetMainCallback2(gInitialMainCB2);
-    gSaveBlock2Ptr = &gSaveblock2.block;
-    gPokemonStoragePtr = &gPokemonStorage.block;
+    gSaveBlock2Ptr = &gSaveBlock2;
+    gPokemonStoragePtr = &gPokemonStorage;
     RogueSave_UpdatePointers();
 }
 
