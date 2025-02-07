@@ -2211,6 +2211,9 @@ u32 GetBoxMonData3(struct BoxPokemon *boxMon, s32 field, u8 *data)
     case MON_DATA_ABILITY:
         retVal = GetMonAbility((struct Pokemon*) boxMon);
         break;
+    case MON_DATA_ABILITY_2:
+        retVal = 0;
+        break;
     case MON_DATA_MAIL:
         retVal = MAIL_NONE;
         break;
