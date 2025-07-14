@@ -114972,6 +114972,7 @@ static struct LevelUpMove const sLevelUpMoves_SPECIES_INFERNAPE[] =
 	{ .move=MOVE_ACROBATICS, .level=52 },
 	{ .move=MOVE_CALM_MIND, .level=58 },
 	{ .move=MOVE_RAGING_FURY, .level=65 },
+	{ .move=MOVE_PYRO_BALL, .level=72 },
 	{ .move=MOVE_NONE, .level=0 },
 };
 
@@ -217279,6 +217280,7 @@ static struct LevelUpMove const sLevelUpMoves_SPECIES_ARAQUANID[] =
 	{ .move=MOVE_LIQUIDATION, .level=50 },
 	{ .move=MOVE_LEECH_LIFE, .level=56 },
 	{ .move=MOVE_MIRROR_COAT, .level=62 },
+	{ .move=MOVE_DIVE, .level=70 },
 	{ .move=MOVE_NONE, .level=0 },
 };
 
@@ -217293,6 +217295,7 @@ static u16 const sTutorMoves_SPECIES_ARAQUANID[] =
 	MOVE_ENDEAVOR,
 	MOVE_ENDURE,
 	MOVE_FACADE,
+	MOVE_FLIP_TURN,
 	MOVE_GIGA_DRAIN,
 	MOVE_GIGA_IMPACT,
 	MOVE_HIDDEN_POWER,
