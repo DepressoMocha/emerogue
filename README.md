@@ -26,10 +26,6 @@
 
 - I personally don't want to mess with battle system related issues, but if others already made fixes for it, i'll gladly add it!
 
-## I want to compile it your fork, why do I keep getting weird issue related to quickmap?
-
-- Sorry, I don't know why it doesn't generate the inc for some reason... In the meantime, get the files [in my drive](https://drive.google.com/file/d/1OfIfZRBhDVhSNPxToSEQcXqmeQkBMTSM/view?usp=drive_link), and paste it in data/maps
-
 ## Will you add the new mega/new pokemon/ETC?
 
 - Probably not, as I am very busy nowadays... This version was originally made for personal use during my free time, so I only add things when I feel like it
