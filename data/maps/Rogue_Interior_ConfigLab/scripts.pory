@@ -152,6 +152,18 @@ script Rogue_Interior_ConfigLab_TalkFennel
             msgbox(format("This {STR_VAR_1} lets you access your Pokémon storage and organize your team from here in the hub!\pIt won't work during Adventures just yet, but it should make your hub preparations much smoother!\pNow…\nDid you want to adjust your Adventure settings?"), MSGBOX_DEFAULT)
         }  
     
+        // Only show this if you have the pocket pc and you're not being given anything.
+        // I feel like making a multichoice would be too extra, and I am going to assume that most uses C-Gear anyway. Sorry for the jank.
+        if(var(VAR_RESULT) == TRUE && var(VAR_GIVE_ITEM) == FALSE)
+        {
+            bufferitemname(STR_VAR_1, ITEM_POCKET_PC)
+
+            msgbox(format("(Return {STR_VAR_1}?)"), MSGBOX_YESNO)
+            if(var(VAR_RESULT) == YES) {
+                removeitem(ITEM_POCKET_PC)
+                msgbox(format("Sure! I'll keep it safe for now. \pDo let me know if you want to retrieve it!\pNow..."), MSGBOX_DEFAULT)
+            }
+        }
 
         if(!var(VAR_GIVE_ITEM))
         {
