@@ -7291,6 +7291,14 @@ void Rogue_ApplyMonCompetitiveSet(struct Pokemon* mon, u8 level, struct RoguePok
         }
     }
 
+    // Lemon's nature fix
+    if(!rules->skipNature)
+    {
+        if (preset->nature) {
+            SetNature(mon, preset->nature);
+        }
+    }
+
     if(!rules->skipHeldItem)
     {
         if(preset->heldItem != ITEM_NONE)
