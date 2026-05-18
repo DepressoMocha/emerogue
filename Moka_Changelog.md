@@ -1,6 +1,7 @@
 # CHANGELOG
 
 VER 2.0.3
+- Added a way to remove pocket PC via talking to Fennel
 - Manually added some egg moves for some pokemon
 - Added the ability to switch whether you want the mega unique to use their unique ability, or their original mega ability. Can be toggled via mega ring
 - Minor grammar fixes
