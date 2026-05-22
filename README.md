@@ -6,7 +6,7 @@
 
 - After the recent update, it's **one-way* compatible from vanilla to this version. Remember to backup your save file if you still want to keep your vanilla save!
 
-## About the custom settings... What does each toggles do?
+## About the custom settings... What do each toggles do?
 
 - Difficulty reward: Toggling it to multiplier will change the reward to, well, multiplier based. Depends on what you toggle in the difficulty settings and what curses do you have on you before you start the adventure
 - Ridemon control:  "Vanilla" is the same control as you used to. "Mocha" changed the fly button to R button, and B for quick dismount
@@ -16,15 +16,15 @@
 
 ## Why is it only for EX?
 
-- I don't play classic version, and honestly it's a hassle to compile two versions. The real reason is that separating stuff for expansion/vanilla takes time, and I don't have as much time to do so nowadays.
+- I don't play the classic version, and honestly it's a hassle to compile two versions. The real reason is that separating stuff for expansion/vanilla takes time, and I don't have as much time to do so nowadays
 
 ## Where do I download the latest patch?
 
-- [In my drive](https://drive.google.com/drive/folders/1CeyNH54nBwguvLIN50Ucx3Wk6K9_abVl). OR in the main Emerald Rogue fanpatch thread.
+- [On my drive](https://drive.google.com/drive/folders/1CeyNH54nBwguvLIN50Ucx3Wk6K9_abVl). OR in the main Emerald Rogue fanpatch thread.
 
 ## Is (pokemon battle related stuff) fixed/added?
 
-- I personally don't want to mess with battle system related issues, but if others already made fixes for it, i'll gladly add it!
+- I personally don't want to mess with battle system related issues, but if others have already made fixes for it, I'll gladly add it!
 
 ## Will you add (Insert new cool things)?
 
