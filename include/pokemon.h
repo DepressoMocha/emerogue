@@ -103,14 +103,16 @@ enum {
     MON_DATA_SPDEF2,
     MON_DATA_TERA_TYPE,
     MON_DATA_GIGANTAMAX_FACTOR,
+    MON_DATA_TUTOR_MOVE_LVL,
 };
 
 struct PokemonSubstruct0
 {
     u32 species:11; // 2047 species.
-    u32 heldItem:10; // 1023 items.
+    u32 heldItem1:10; // 1023 items.
     u32 teraType:5; // 30 types.
-    u32 unused_0:6;
+    u32 heldItem2:1; // pushes item count to 3777.
+    u32 unused_0:5;
     u32 experience:21;
     u32 unused_1:11;
     /*0x08*/ u8 ppBonuses;
@@ -177,7 +179,7 @@ struct PokemonSubstruct3
  /* 0x0B */ u32 nationalRibbon:1;           // Given to purified Shadow Pokémon in Colosseum/XD.
  /* 0x0B */ u32 earthRibbon:1;              // Given to teams that have beaten Mt. Battle's 100-battle challenge in Colosseum/XD.
  /* 0x0B */ u32 worldRibbon:1;              // Distributed during Pokémon Festa '04 and '05 to tournament winners.
- /* 0x0B */ u32 unusedRibbons:2;            // Discarded in Gen 4.
+ /* 0x0B */ u32 tutorMoveLvl:2;
  /* 0x0B */ u32 abilityNum:2;
 
  // The functionality of this bit changed in FRLG:
@@ -535,7 +537,8 @@ extern u8 gEnemyPartyCount;
 extern struct Pokemon gEnemyParty[PARTY_SIZE];
 extern struct SpriteTemplate gMultiuseSpriteTemplate;
 
-extern const struct BattleMove gBattleMoves[];
+extern const struct BattleMove gBattleMoves_Mainline[];
+extern const struct BattleMove gBattleMoves_Revised[];
 extern const u8 gFacilityClassToPicIndex[];
 extern const u8 gFacilityClassToTrainerClass[];
 extern const struct SpeciesInfo gSpeciesInfo[];
@@ -549,6 +552,9 @@ extern const u16 gUnionRoomFacilityClasses[];
 extern const struct SpriteTemplate gBattlerSpriteTemplates[];
 extern const s8 gNatureStatTable[][5];
 extern const u32 sExpCandyExperienceTable[];
+
+bool8 Rogue_GetRevisionModeActive(void);
+#define gBattleMoves (Rogue_GetRevisionModeActive() ? gBattleMoves_Revised : gBattleMoves_Mainline)
 
 void ZeroBoxMonData(struct BoxPokemon *boxMon);
 void ZeroMonData(struct Pokemon *mon);
@@ -626,6 +632,8 @@ u8 CalculateEnemyPartyCount(void);
 u8 GetMonsStateToDoubles(void);
 u8 GetMonsStateToDoubles_2(void);
 u16 GetAbilityBySpecies(u16 species, u8 abilityNum, u32 otId);
+u16 GetAbilityBySpecies_ForRevised(u16 species, u8 abilityNum, u32 otId, bool32 revisedMode);
+u8 GetTypeBySpecies(u16 species, u8 typeSlot, u32 otId);
 u16 GetMonAbility(struct Pokemon *mon);
 void CreateSecretBaseEnemyParty(struct SecretBase *secretBaseRecord);
 u8 GetSecretBaseTrainerPicIndex(void);
@@ -691,7 +699,7 @@ void PlayBattleBGM(void);
 void PlayMapChosenOrBattleBGM(u16 songId);
 void CreateTask_PlayMapChosenOrBattleBGM(u16 songId);
 const u32 *GetMonFrontSpritePal(struct Pokemon *mon);
-const u32 *GetMonSpritePalFromSpecies(u16 species, u8 gender, bool8 shiny);
+const u32 *GetMonSpritePalFromSpecies(u16 species, u8 gender, bool8 shiny, u32 otId);
 bool32 CanUseHMMove2(u16 move);
 bool8 IsMoveHM(u16 move);
 bool8 IsMonSpriteNotFlipped(u16 species);

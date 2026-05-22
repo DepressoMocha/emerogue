@@ -1,6 +1,6 @@
 echo Working Directory: $PWD
 
-testToRunPrefix="Battle Armor and Shell Armor block critical"
+testToRunPrefix="Form change targets have the appropriate species"
 
 echo Running Test Build.. [make -j$(nproc) -O pokeemerald-test.elf TEST=1 RELEASE=0 TESTS="$testToRunPrefix"]
 make -j$(nproc) -O pokeemerald-test.elf TEST=1 RELEASE=0 TESTS="$testToRunPrefix"

@@ -337,6 +337,14 @@ static bool8 CanCycleRideMons()
     return !Rogue_IsRideMonFlying() && !Rogue_IsRideMonSwimming();
 }
 
+static bool8 IsSafeToSwapRideMons()
+{
+    struct ObjectEvent* player = &gObjectEvents[gPlayerAvatar.objectEventId];
+
+    // Only swap when player is at a valid tile position
+    return (player->currentCoords.x == player->previousCoords.x && player->currentCoords.y == player->previousCoords.y);
+}
+
 bool8 Rogue_HandleRideMonInput()
 {
     if(Rogue_IsRideActive())
@@ -346,43 +354,49 @@ bool8 Rogue_HandleRideMonInput()
         {
             if(gSaveBlock2Ptr->optionsRidemonControlMode == OPTIONS_RIDEMON_CONTROL_VANILLA)
             {
-                if(JOY_NEW(L_BUTTON))
+                if(IsSafeToSwapRideMons())
                 {
-                    if(CanCycleRideMons())
+                    if(JOY_NEW(L_BUTTON))
                     {
-                        CalculateRideSpecies(-1);
-                        PlayRideMonCry();
+                        if(CanCycleRideMons())
+                        {
+                            CalculateRideSpecies(-1);
+                            PlayRideMonCry();
+                        }
+                        else
+                        {
+                            PlaySE(SE_FAILURE);
+                        }
                     }
-                    else
+                    else if(JOY_NEW(R_BUTTON))
                     {
-                        PlaySE(SE_FAILURE);
-                    }
-                }
-                else if(JOY_NEW(R_BUTTON))
-                {
-                    if(CanCycleRideMons())
-                    {
-                        CalculateRideSpecies(1);
-                        PlayRideMonCry();
-                    }
-                    else
-                    {
-                        PlaySE(SE_FAILURE);
+                        if(CanCycleRideMons())
+                        {
+                            CalculateRideSpecies(1);
+                            PlayRideMonCry();
+                        }
+                        else
+                        {
+                            PlaySE(SE_FAILURE);
+                        }
                     }
                 }
             }
             else
             {
-                if(JOY_NEW(L_BUTTON))
+                if(IsSafeToSwapRideMons())
                 {
-                    if(CanCycleRideMons())
+                    if(JOY_NEW(L_BUTTON))
                     {
-                        CalculateRideSpecies(-1);
-                        PlayRideMonCry();
-                    }
-                    else
-                    {
-                        PlaySE(SE_FAILURE);
+                        if(CanCycleRideMons())
+                        {
+                            CalculateRideSpecies(-1);
+                            PlayRideMonCry();
+                        }
+                        else
+                        {
+                            PlaySE(SE_FAILURE);
+                        }
                     }
                 }
             }
@@ -607,6 +621,8 @@ bool8 Rogue_IsValidRideFlySpecies(u16 species)
 
 static u8 UNUSED CalculateMovementModeForInternal(u16 species)
 {
+    //struct RoguePokemonBaseStats speciesStats;
+    //Rogue_GetPokemonBaseStats(species, &speciesStats);
     u8 speed = gRogueSpeciesInfo[species].baseSpeed;
     
     if(speed <= 70)
@@ -718,7 +734,7 @@ static void UpdateRideMonSprites(u8 rideObjectId, struct RideObjectEvent* rideOb
                     isShiny = TRUE;
                 }
                 
-                FollowMon_SetGraphics(gfxId, species, isShiny);
+                FollowMon_SetGraphics(gfxId, species, isShiny, 0);
                 rideObject->monSpriteId = CreateObjectGraphicsSpriteInObjectEventSpace(OBJ_EVENT_GFX_FOLLOW_MON_0 + gfxId, SpriteCallbackDummy, spriteX, spriteY, 0);
                 gSprites[rideObject->monSpriteId].disableAnimOffsets = TRUE;
             }
@@ -1413,6 +1429,7 @@ static void PlayerOnRideMonMoving(u8 direction, u16 newKeys, u16 heldKeys)
         //MOVE_SPEED_FAST_2, // water current / acro bike                   PlayerRideWaterCurrent
         //MOVE_SPEED_FASTER, // mach bike's max speed                       PlayerWalkFaster
         //MOVE_SPEED_FASTEST,                                               ??
+        //MOVE_SPEED_FASTEST_2                                              ??
 
         switch (CalculateMovementModeFor(GetCurrentRideMonSpecies()))
         {

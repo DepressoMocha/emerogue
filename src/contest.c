@@ -333,8 +333,10 @@ enum {
     APPEALSTATE_WAIT_MON_MOVE_IGNORED_MSG,
 };
 
+#define DUD_VAR(type) 
+
 // EWRAM vars.
-EWRAM_DATA struct ContestPokemon gContestMons[CONTESTANT_COUNT] = {0};
+EWRAM_DATA struct ContestPokemon* gContestMons = NULL; //[CONTESTANT_COUNT] = {0};
 EWRAM_DATA s16 gContestMonRound1Points[CONTESTANT_COUNT] = {0}; // "Round 1" points are based on condition
 EWRAM_DATA s16 gContestMonTotalPoints[CONTESTANT_COUNT] = {0}; // Round 1 points + Round 2 points
 EWRAM_DATA s16 gContestMonAppealPointTotals[CONTESTANT_COUNT] = {0};
@@ -3124,7 +3126,7 @@ static u8 CreateContestantSprite(u16 species, u32 otId, u32 personality, u32 ind
 
     HandleLoadSpecialPokePic(FALSE, gMonSpritesGfxPtr->sprites.ptr[B_POSITION_PLAYER_LEFT], species, personality, gender);
 
-    LoadCompressedPalette(GetMonSpritePalFromSpecies(species, gender, FALSE), OBJ_PLTT_ID(2), PLTT_SIZE_4BPP);
+    LoadCompressedPalette(GetMonSpritePalFromSpecies(species, gender, FALSE, 0), OBJ_PLTT_ID(2), PLTT_SIZE_4BPP);
     SetMultiuseSpriteTemplateToPokemon(species, B_POSITION_PLAYER_LEFT);
 
     spriteId = CreateSprite(&gMultiuseSpriteTemplate, 0x70, GetBattlerSpriteFinal_Y(2, species, FALSE), 30);
@@ -5308,7 +5310,7 @@ static void SetMoveSpecificAnimData(u8 contestant)
     switch (move)
     {
     case MOVE_CURSE:
-        if (gSpeciesInfo[species].types[0] == TYPE_GHOST || gSpeciesInfo[species].types[1] == TYPE_GHOST)
+        if (GetTypeBySpecies(species, 0, 0) == TYPE_GHOST || GetTypeBySpecies(species, 1, 0) == TYPE_GHOST)
             gAnimMoveTurn = 0;
         else
             gAnimMoveTurn = 1;

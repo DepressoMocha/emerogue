@@ -908,6 +908,16 @@ EventScript_VsSeekerChargingDone::
 
 	.include "data/maps/Rogue_Route_Sinnoh_IronIsland/scripts.inc"
 
+	.include "data/maps/Rogue_Encounter_BattleTower/scripts.inc"
+
+	.include "data/maps/Rogue_Encounter_DragonSpiralTower/scripts.inc"
+
+	.include "data/maps/Rogue_Encounter_ChargeStoneCave/scripts.inc"
+
+	.include "data/maps/Rogue_Encounter_PokeBallFactory/scripts.inc"
+
+	.include "data/maps/Rogue_Encounter_LysandreLabs/scripts.inc"
+
 	.include "data/maps/Rogue_Route_QuickMap0/scripts.inc"
 
 	.include "data/maps/Rogue_Route_QuickMap1/scripts.inc"

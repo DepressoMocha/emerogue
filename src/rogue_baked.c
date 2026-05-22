@@ -2,6 +2,7 @@
 // This file is shared between the game src and the offline bake to assist in making 
 // queries and other stuff which can be prepared offline a bit faster
 //
+#include "constants/abilities.h"
 #include "constants/battle_ai.h"
 #include "constants/items.h"
 #include "constants/pokemon.h"
@@ -51,11 +52,28 @@ extern const struct BaseStats gBaseStats[];
 
 #ifdef ROGUE_BAKING
 #define ROGUE_BAKE_INVALID
+bool8 Rogue_GetRevisionModeActive()
+{
+    return FALSE;
+}
 #else
 // Swap to force runtime resolution
 //#define ROGUE_BAKE_INVALID
 #define ROGUE_BAKE_VALID
+
+extern const u8 *const gMoveDescriptionPointers_Revised[MOVES_COUNT - 1];
+extern const u8 *const gAbilityDescriptionPointers_Revised[ABILITIES_COUNT];
 #endif
+
+extern const struct RoguePokemonProfile gRoguePokemonProfiles[NUM_SPECIES];
+extern u16 const gRoguePokemonSpecialMoveUsages[MOVES_COUNT];
+extern u16 const gRoguePokemonHeldItemUsages[ITEMS_COUNT];
+extern u16 const gRoguePokemonMoveUsages[MOVES_COUNT];
+
+extern const struct RoguePokemonProfile gRoguePokemonProfiles_Revised[NUM_SPECIES];
+extern u16 const gRoguePokemonSpecialMoveUsages_Revised[MOVES_COUNT];
+extern u16 const gRoguePokemonHeldItemUsages_Revised[ITEMS_COUNT];
+extern u16 const gRoguePokemonMoveUsages_Revised[MOVES_COUNT];
 
 extern const u8 gText_TrainerName_Brendan[];
 extern const u8 gText_TrainerName_May[];
@@ -73,6 +91,10 @@ extern const u16 gRogueBake_EvoItems[];
 extern const u16 gRogueBake_EvoItems_Count;
 extern const u16 gRogueBake_FormItems[];
 extern const u16 gRogueBake_FormItems_Count;
+
+#ifdef ROGUE_EXPANSION
+extern const u16 gRogueBake_MegaItemToSpecies[];
+#endif
 
 extern const u16 gRogueBake_FinalEvoSpecies[];
 extern const u16 gRogueBake_FinalEvoSpecies_Count;
@@ -169,6 +191,16 @@ static const struct Evolution sMeltanEvolutions[] =
 
 static const struct Evolution* GetBaseEvolution(u16 species, u8 evoIdx)
 {
+    // Only override evos in revision mode
+    if(Rogue_GetRevisionModeActive())
+    {
+        struct RoguePokemonProfile const* pokemonProfile = Rogue_GetPokemonProfile(species);
+        if(pokemonProfile->evolutions != NULL)
+        {
+            return &pokemonProfile->evolutions[evoIdx];
+        }
+    }
+
 #ifdef ROGUE_EXPANSION
     switch (species)
     {
@@ -216,13 +248,14 @@ static void ModifyKnowMoveEvo(u16 species, struct Evolution* outEvo, u16 fromMet
         // While baking just assume everything is lvl 30 evo
 #ifndef ROGUE_BAKING
         u16 i;
+        struct RoguePokemonProfile const* pokemonProfile = Rogue_GetPokemonProfile(species);
 
-        for (i = 0; gRoguePokemonProfiles[species].levelUpMoves[i].move != MOVE_NONE; i++)
+        for (i = 0; pokemonProfile->levelUpMoves[i].move != MOVE_NONE; i++)
         {
-            if(gRoguePokemonProfiles[species].levelUpMoves[i].move == outEvo->param)
+            if(pokemonProfile->levelUpMoves[i].move == outEvo->param)
             {
                 outEvo->method = toMethod;
-                outEvo->param = max(38, gRoguePokemonProfiles[species].levelUpMoves[i].level);
+                outEvo->param = max(38, pokemonProfile->levelUpMoves[i].level);
                 break;
             }
         }
@@ -964,7 +997,7 @@ void Rogue_ModifyItem(u16 itemId, struct Item* outItem)
 {
 }
 
-u32 Rogue_CalculateMovePrice(u16 move)
+u32 Rogue_CalculateMovePrice(u16 move, u16 forItemId)
 {
     return 0;
 }
@@ -1144,7 +1177,7 @@ u16 Rogue_GetPrice(u16 itemId)
     if(itemId >= ITEM_TR01 && itemId <= ITEM_TR50)
     {
         u16 move = ItemIdToBattleMoveId(itemId);
-        price = Rogue_CalculateMovePrice(move);
+        price = Rogue_CalculateMovePrice(move, itemId);
     }
 
     if(itemId >= ITEM_TM01 && itemId <= ITEM_HM08)
@@ -1152,7 +1185,7 @@ u16 Rogue_GetPrice(u16 itemId)
         u16 move = ItemIdToBattleMoveId(itemId);
 
         // increase as these are re-usable
-        price = Rogue_CalculateMovePrice(move) * 4;
+        price = Rogue_CalculateMovePrice(move, itemId);
         applyDefaultHubIncrease = TRUE;
     }
 
@@ -1160,7 +1193,7 @@ u16 Rogue_GetPrice(u16 itemId)
     if(item.holdEffect != 0 && item.pocket != POCKET_BERRIES)
     {
         applyDefaultHubIncrease = TRUE;
-        price = 1000 + (min(gRoguePokemonHeldItemUsages[itemId], 280) / 4) * 100;
+        price = 1000 + (min(Rogue_GetPokemonHeldItemUsage(itemId), 280) / 4) * 100;
     }
 
 #ifdef ROGUE_EXPANSION
@@ -1200,6 +1233,12 @@ u16 Rogue_GetPrice(u16 itemId)
     }
 
     if(itemId >= ITEM_RED_ORB && itemId <= ITEM_DIANCITE)
+    {
+        // Expect price from above
+        price = HELD_ITEM_HIGH_PRICE;
+        applyDefaultHubIncrease = TRUE;
+    }
+    if(itemId >= ITEM_CLEFABLITE && itemId <= ITEM_GLIMMORANITE)
     {
         // Expect price from above
         price = HELD_ITEM_HIGH_PRICE;
@@ -1508,7 +1547,7 @@ void Rogue_ModifyItem(u16 itemId, struct Item* outItem)
     }
 
 #ifdef ROGUE_EXPANSION
-    if(itemId >= ITEM_VENUSAURITE && itemId <= ITEM_DIANCITE)
+    if(IS_MEGA_STONE(itemId))
     {
         outItem->pocket = POCKET_STONES;
     }
@@ -1629,11 +1668,11 @@ void Rogue_ModifyItem(u16 itemId, struct Item* outItem)
     }
 }
 
-u32 Rogue_CalculateMovePrice(u16 move)
+u32 Rogue_CalculateMovePrice(u16 move, u16 itemId)
 {
     // Move cost takes into account high level stats and then modifies based on usage
     u32 cost = 0;
-    u32 usageCount = gRoguePokemonMoveUsages[move];
+    u32 usageCount = Rogue_GetPokemonMoveUsage(move);
     u8 accuracy = gBattleMoves[move].accuracy;
     u8 pp = gBattleMoves[move].pp;
     u8 power = gBattleMoves[move].power;
@@ -1715,8 +1754,24 @@ u32 Rogue_CalculateMovePrice(u16 move)
     else if(usageCount >= 100)
         cost += 500;
 
+    cost /= 2; // price experiment
+
     if(cost < 100)
         cost = 100;
+
+    // tutor moves
+    if(itemId == ITEM_NONE)
+    {
+        if(Rogue_IsRunActive())
+            cost *= 2; // price experiment (keep same cost in hub)
+    }
+    else if(itemId >= ITEM_TM01 && itemId <= ITEM_HM08)
+    {
+        if(Rogue_IsRunActive())
+            cost *= (4 * 6) / 5;
+        else
+            cost *= 4 * 2; // *2 price experiment
+    }
 
     return cost;
 }
@@ -1872,6 +1927,16 @@ u16 Rogue_GetFormItemIndex(u16 itemId)
 #endif
 }
 
+u16 Rogue_GetSpeciesForMegaItem(u16 itemId)
+{
+#ifdef ROGUE_BAKE_VALID
+    if(IS_MEGA_STONE(itemId))
+        return gRogueBake_MegaItemToSpecies[itemId - ITEM_VENUSAURITE];
+#endif
+
+    return SPECIES_NONE;
+}
+
 #else
 
 bool8 Rogue_IsFormItem(u16 itemId)
@@ -1884,6 +1949,11 @@ u16 Rogue_GetFormItemIndex(u16 itemId)
     return 0;
 }
 
+u16 Rogue_GetSpeciesForMegaItem(u16 itemId)
+{
+    return SPECIES_NONE;
+}
+
 #endif
 
 u32 Rogue_ModifyExperienceTables(u8 growthRate, u8 level)
@@ -1893,6 +1963,141 @@ u32 Rogue_ModifyExperienceTables(u8 growthRate, u8 level)
     return level * 300;//MAX_LEVEL;
 }
 
+struct RoguePokemonProfile const* Rogue_GetPokemonProfile(u32 species)
+{
+    if(Rogue_GetRevisionModeActive())
+    {
+        return &gRoguePokemonProfiles_Revised[species];
+    }
+    else
+    {
+        return &gRoguePokemonProfiles[species];
+    }
+}
+
+void Rogue_GetPokemonBaseStats(u32 species, struct RoguePokemonBaseStats* outStats)
+{
+    Rogue_GetPokemonBaseStatsFor(species, outStats, Rogue_GetRevisionModeActive());
+}
+
+void Rogue_GetPokemonBaseStatsFor(u32 species, struct RoguePokemonBaseStats* outStats, bool8 isRevised)
+{
+    if (isRevised)
+    {
+        memcpy(outStats, &gRoguePokemonProfiles_Revised[species].baseStats, sizeof(struct RoguePokemonBaseStats));
+    }
+    else
+    {
+        outStats->baseHP = 0;
+        outStats->types[0] = TYPE_NONE;
+        outStats->abilities[0] = ABILITY_NONE;
+    }
+    
+    if(outStats->baseHP == 0)
+    {
+        outStats->baseHP = gRogueSpeciesInfo[species].baseHP;
+        outStats->baseAttack = gRogueSpeciesInfo[species].baseAttack;
+        outStats->baseDefense = gRogueSpeciesInfo[species].baseDefense;
+        outStats->baseSpeed = gRogueSpeciesInfo[species].baseSpeed;
+        outStats->baseSpAttack = gRogueSpeciesInfo[species].baseSpAttack;
+        outStats->baseSpDefense = gRogueSpeciesInfo[species].baseSpDefense;
+    }
+
+
+    if(outStats->types[0] == TYPE_NONE)
+    {
+#ifdef ROGUE_EXPANSION
+        outStats->types[0] = gRogueSpeciesInfo[species].types[0];
+        outStats->types[1] = gRogueSpeciesInfo[species].types[1];
+#else
+        outStats->types[0] = gRogueSpeciesInfo[species].type1;
+        outStats->types[1] = gRogueSpeciesInfo[species].type2;
+#endif
+    }
+
+    if(outStats->abilities[0] == ABILITY_NONE)
+    {
+        u32 i;
+        for (i = 0; i < NUM_ABILITY_SLOTS; ++i)
+        {
+            outStats->abilities[i] = gRogueSpeciesInfo[species].abilities[i];
+        }
+        
+    }
+}
+
+u16 Rogue_GetPokemonHeldItemUsage(u16 item)
+{
+    if(Rogue_GetRevisionModeActive())
+    {
+        return gRoguePokemonHeldItemUsages_Revised[item];
+    }
+    else
+    {
+        return gRoguePokemonHeldItemUsages[item];
+    }
+}
+
+u16 Rogue_GetPokemonMoveUsage(u16 move)
+{
+    if(Rogue_GetRevisionModeActive())
+    {
+        return gRoguePokemonMoveUsages_Revised[move];
+    }
+    else
+    {
+        return gRoguePokemonMoveUsages[move];
+    }
+}
+
+u16 Rogue_GetPokemonSpecialMoveUsage(u16 move)
+{
+    if(Rogue_GetRevisionModeActive())
+    {
+        return gRoguePokemonSpecialMoveUsages_Revised[move];
+    }
+    else
+    {
+        return gRoguePokemonSpecialMoveUsages[move];
+    }
+}
+
+bool8 Rogue_HasMoveBeenRevised(u16 move)
+{
+#ifndef ROGUE_BAKING
+    if(Rogue_GetRevisionModeActive())
+    {
+        return memcmp(&gBattleMoves_Mainline[move], &gBattleMoves_Revised[move], sizeof(struct BattleMove)) != 0;
+    }
+#endif
+
+    return FALSE;
+}
+
+
+u8 const* Rogue_TryOverrideMoveDescription(u16 move)
+{
+#ifndef ROGUE_BAKING
+    if(move != MOVE_NONE && Rogue_GetRevisionModeActive())
+    {
+        return gMoveDescriptionPointers_Revised[move - 1];
+    }
+#endif
+
+    return NULL;
+}
+
+u8 const* Rogue_TryOverrideAbilityDescription(u16 ability)
+{
+#ifndef ROGUE_BAKING
+    if(Rogue_GetRevisionModeActive())
+    {
+        return gAbilityDescriptionPointers_Revised[ability];
+    }
+#endif
+
+    return NULL;
+}
 
 // Taken straight from daycare
 u16 Rogue_GetEggSpecies(u16 species)
@@ -1949,6 +2154,16 @@ u16 Rogue_GetEggSpecies(u16 species)
 u8 Rogue_GetMaxEvolutionCount(u16 species)
 {
 #ifdef ROGUE_BAKE_VALID
+    // Only override evos in revision mode
+    if(Rogue_GetRevisionModeActive())
+    {
+        struct RoguePokemonProfile const* pokemonProfile = Rogue_GetPokemonProfile(species);
+        if(pokemonProfile->evolutions != NULL)
+        {
+            return pokemonProfile->evolutionCount;
+        }
+    }
+
     return gRogueBake_SpeciesData[species].evolutionCount;
 #else
     return GetMaxEvolutionCountInternal(species);
@@ -2028,19 +2243,21 @@ bool8 Rogue_DoesEvolveInto(u16 fromSpecies, u16 toSpecies)
 
 void Rogue_AppendSpeciesTypeFlags(u16 species, u32* outFlags)
 {
-#ifdef ROGUE_EXPANSION
-    *outFlags |= MON_TYPE_VAL_TO_FLAGS(gSpeciesInfo[species].types[0]);
-    *outFlags |= MON_TYPE_VAL_TO_FLAGS(gSpeciesInfo[species].types[1]);
+#ifdef ROGUE_BAKING
+    struct RoguePokemonBaseStats baseStats;
+    Rogue_GetPokemonBaseStats(species, &baseStats);
+    *outFlags |= MON_TYPE_VAL_TO_FLAGS(baseStats.types[0]);
+    *outFlags |= MON_TYPE_VAL_TO_FLAGS(baseStats.types[1]);
 #else
-    *outFlags |= MON_TYPE_VAL_TO_FLAGS(gRogueSpeciesInfo[species].type1);
-    *outFlags |= MON_TYPE_VAL_TO_FLAGS(gRogueSpeciesInfo[species].type2);
+    *outFlags |= MON_TYPE_VAL_TO_FLAGS(GetTypeBySpecies(species, 0, 0));
+    *outFlags |= MON_TYPE_VAL_TO_FLAGS(GetTypeBySpecies(species, 1, 0));
 #endif
 }
 
 u32 Rogue_GetSpeciesEvolutionChainTypeFlags(u16 species)
 {
 #ifdef ROGUE_BAKE_VALID
-    return gRogueBake_SpeciesData[species].evolutionChainTypeFlags;
+    return Rogue_GetRevisionModeActive() ? gRogueBake_SpeciesData[species].evolutionChainTypeFlags_Revised : gRogueBake_SpeciesData[species].evolutionChainTypeFlags;
 #elif defined(ROGUE_BAKING)
     return 0;
 #else
@@ -2069,11 +2286,12 @@ u32 Rogue_GetMonFlags(u16 species)
 {
     u32 flags = 0;
 #ifndef ROGUE_BAKING
+    struct RoguePokemonProfile const* pokemonProfile = Rogue_GetPokemonProfile(species);
 #ifdef ROGUE_EXPANSION
     //u16 species2;;
 #endif
 
-    flags = gRoguePokemonProfiles[species].monFlags;
+    flags = pokemonProfile->monFlags;
 
 #ifdef ROGUE_EXPANSION
     //species2 = GET_BASE_SPECIES_ID(species);

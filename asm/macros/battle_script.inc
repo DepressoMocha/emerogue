@@ -100,8 +100,9 @@
 	.byte 0x16
 	.endm
 
-	.macro seteffectsecondary
+	.macro seteffectsecondary trigger:req
 	.byte 0x17
+	.byte \trigger
 	.endm
 
 	.macro clearstatusfromeffect battler:req
@@ -1408,6 +1409,11 @@
 	.macro setzeffect
 	callnative BS_SetZEffect
 	.endm
+	
+	.macro handleSpectralThief spectralThiefSteal:req
+	callnative BS_TrySpectralThief
+	.4byte \spectralThiefSteal
+	.endm
 
 	@ Used by effects that may proc Symbiosis but do not call removeitem.
 	.macro trysymbiosis
@@ -1540,6 +1546,11 @@
 
 	.macro jumpiftargetdynamaxed, ptr:req
 	callnative BS_JumpIfDynamaxed
+	.4byte \ptr
+	.endm
+
+	.macro rogue_jumpifrevised, ptr:req
+	callnative BS_Rogue_JumpIfRevised
 	.4byte \ptr
 	.endm
 

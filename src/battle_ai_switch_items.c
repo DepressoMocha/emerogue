@@ -335,7 +335,9 @@ static bool8 FindMonThatAbsorbsOpponentsMove(u32 battler)
     if (gBattleMoves[gLastLandedMoves[battler]].type == TYPE_FIRE)
     {
         absorbingTypeAbilities[0] = ABILITY_FLASH_FIRE;
-        numAbsorbingAbilities = 1;
+        absorbingTypeAbilities[1] = ABILITY_WELL_BAKED_BODY;
+        absorbingTypeAbilities[2] = ABILITY_THERMAL_EXCHANGE;
+        numAbsorbingAbilities = 3;
     }
     else if (gBattleMoves[gLastLandedMoves[battler]].type == TYPE_WATER)
     {
@@ -744,6 +746,7 @@ static bool8 FindMonWithFlagsAndSuperEffective(u32 battler, u16 flags, u8 modulo
     for (i = firstId; i < lastId; i++)
     {
         u16 species, monAbility;
+        u32 otId;
 
         if (!IsValidForBattle(&party[i]))
             continue;
@@ -759,8 +762,9 @@ static bool8 FindMonWithFlagsAndSuperEffective(u32 battler, u16 flags, u8 modulo
             continue;
 
         species = GetMonData(&party[i], MON_DATA_SPECIES_OR_EGG);
+        otId = GetMonData(&party[i], MON_DATA_OT_ID);
         monAbility = GetMonAbility(&party[i]);
-        CalcPartyMonTypeEffectivenessMultiplier(gLastLandedMoves[battler], species, monAbility);
+        CalcPartyMonTypeEffectivenessMultiplier(gLastLandedMoves[battler], species, monAbility, otId);
         if (gMoveResultFlags & flags)
         {
             battlerIn1 = gLastHitBy[battler];
@@ -1002,6 +1006,10 @@ bool32 ShouldSwitch(u32 battler)
             return FALSE;
     }
 
+    // Unless this is the very first turn switch, if this is the first turn this mon has been in the field, don't swap it out in singles
+    if(gBattleResults.battleTurnCounter != 0 && gDisableStructs[battler].isFirstTurn && !(gBattleTypeFlags & BATTLE_TYPE_DOUBLE))
+        return FALSE;
+
     //NOTE: The sequence of the below functions matter! Do not change unless you have carefully considered the outcome.
     //Since the order is sequencial, and some of these functions prompt switch to specific party members.
 
@@ -1159,12 +1167,13 @@ static u32 GetBestMonTypeMatchup(struct Pokemon *party, int firstId, int lastId,
             if (!(gBitTable[i] & invalidMons) && !(gBitTable[i] & bits))
             {
                 u16 species = GetMonData(&party[i], MON_DATA_SPECIES);
+                u32 otId = GetMonData(&party[i], MON_DATA_OT_ID);
                 uq4_12_t typeEffectiveness = UQ_4_12(1.0);
 
                 u8 atkType1 = gBattleMons[opposingBattler].type1;
                 u8 atkType2 = gBattleMons[opposingBattler].type2;
-                u8 defType1 = gSpeciesInfo[species].types[0];
-                u8 defType2 = gSpeciesInfo[species].types[1];
+                u8 defType1 = GetTypeBySpecies(species, 0, otId);
+                u8 defType2 = GetTypeBySpecies(species, 1, otId);
 
                 typeEffectiveness = uq4_12_multiply(typeEffectiveness, (GetTypeModifier(atkType1, defType1)));
                 if (atkType2 != atkType1)
@@ -1617,7 +1626,7 @@ static u16 GetSwitchinTypeMatchup(u32 opposingBattler, struct BattlePokemon batt
 
     // Check type matchup
     u16 typeEffectiveness = UQ_4_12(1.0);
-    u8 atkType1 = gSpeciesInfo[gBattleMons[opposingBattler].species].types[0], atkType2 = gSpeciesInfo[gBattleMons[opposingBattler].species].types[1],
+    u8 atkType1 = GetTypeBySpecies(gBattleMons[opposingBattler].species, 0, gBattleMons[opposingBattler].otId), atkType2 = GetTypeBySpecies(gBattleMons[opposingBattler].species, 1, gBattleMons[opposingBattler].otId),
     defType1 = battleMon.type1, defType2 = battleMon.type2;
 
     // Multiply type effectiveness by a factor depending on type matchup
@@ -1948,11 +1957,14 @@ u8 GetMostSuitableMonToSwitchInto(u32 battler, bool32 switchAfterMonKOd)
     if (AI_THINKING_STRUCT->aiFlags & AI_FLAG_SMART_MON_CHOICES)
     {
         bestMonId = GetBestMonIntegrated(party, firstId, lastId, battler, opposingBattler, battlerIn1, battlerIn2, switchAfterMonKOd);
-        return bestMonId;
+
+        // Fallback to non-smart choice, if we picked something invalid
+        if(IsValidForBattle(&party[bestMonId]))
+            return bestMonId;
     }
 
     // This all handled by the GetBestMonIntegrated function if the AI_FLAG_SMART_MON_CHOICES flag is set
-    else
+    //else
     {
         s32 i, aliveCount = 0;
         u32 invalidMons = 0, aceMonId = PARTY_SIZE;

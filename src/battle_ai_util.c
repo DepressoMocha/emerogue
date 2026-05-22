@@ -295,6 +295,9 @@ static const s8 sAiAbilityRatings[ABILITIES_COUNT] =
     [ABILITY_WANDERING_SPIRIT] = 2,
     [ABILITY_GORILLA_TACTICS] = 4,
     [ABILITY_EARTH_EATER] = 7,
+    [ABILITY_WELL_BAKED_BODY] = 7,
+    [ABILITY_THERMAL_EXCHANGE] = 7,
+    [ABILITY_DRAGONIZE] = 8,
 
     [ABILITY_FORECAST_PRIORITY] = 9,
 };
@@ -492,6 +495,7 @@ void SaveBattlerData(u32 battlerId)
 static bool32 ShouldFailForIllusion(u32 illusionSpecies, u32 battlerId)
 {
     u32 i, j;
+    struct RoguePokemonProfile const* pokemonProfile = Rogue_GetPokemonProfile(illusionSpecies);
 
     if (BATTLE_HISTORY->abilities[battlerId] == ABILITY_ILLUSION)
         return FALSE;
@@ -503,13 +507,13 @@ static bool32 ShouldFailForIllusion(u32 illusionSpecies, u32 battlerId)
         if (move == MOVE_NONE)
             continue;
 
-        for (j = 0; gRoguePokemonProfiles[illusionSpecies].levelUpMoves[j].move != MOVE_NONE; j++)
+        for (j = 0; pokemonProfile->levelUpMoves[j].move != MOVE_NONE; j++)
         {
-            if (gRoguePokemonProfiles[illusionSpecies].levelUpMoves[j].move == move)
+            if (pokemonProfile->levelUpMoves[j].move == move)
                 break;
         }
         // The used move is in the learnsets of the fake species.
-        if (gRoguePokemonProfiles[illusionSpecies].levelUpMoves[j].move != MOVE_NONE)
+        if (pokemonProfile->levelUpMoves[j].move != MOVE_NONE)
             continue;
 
         // The used move can be learned from Tm/Hm or Move Tutors.
@@ -527,20 +531,21 @@ void SetBattlerData(u32 battlerId)
 {
     if (!BattlerHasAi(battlerId))
     {
-        u32 i, species, illusionSpecies, side;
+        u32 i, species, illusionSpecies, side, otId;
         side = GetBattlerSide(battlerId);
 
         // Simulate Illusion
         species = gBattleMons[battlerId].species;
+        otId = gBattleMons[battlerId].otId;
         illusionSpecies = GetIllusionMonSpecies(battlerId);
         if (illusionSpecies != SPECIES_NONE && ShouldFailForIllusion(illusionSpecies, battlerId))
         {
             // If the battler's type has not been changed, AI assumes the types of the illusion mon.
-            if (gBattleMons[battlerId].type1 == gSpeciesInfo[species].types[0]
-                && gBattleMons[battlerId].type2 == gSpeciesInfo[species].types[1])
+            if (gBattleMons[battlerId].type1 == GetTypeBySpecies(species, 0, otId)
+                && gBattleMons[battlerId].type2 == GetTypeBySpecies(species, 1, otId))
             {
-                gBattleMons[battlerId].type1 = gSpeciesInfo[illusionSpecies].types[0];
-                gBattleMons[battlerId].type2 = gSpeciesInfo[illusionSpecies].types[1];
+                gBattleMons[battlerId].type1 = GetTypeBySpecies(species, 0, otId);
+                gBattleMons[battlerId].type2 = GetTypeBySpecies(species, 1, otId);
             }
             species = illusionSpecies;
         }
@@ -621,12 +626,15 @@ bool32 IsBattlerTrapped(u32 battler, bool32 checkSwitch)
 
 u32 GetTotalBaseStat(u32 species)
 {
-    return gSpeciesInfo[species].baseHP
-        + gSpeciesInfo[species].baseAttack
-        + gSpeciesInfo[species].baseDefense
-        + gSpeciesInfo[species].baseSpeed
-        + gSpeciesInfo[species].baseSpAttack
-        + gSpeciesInfo[species].baseSpDefense;
+    struct RoguePokemonBaseStats speciesStats;
+    Rogue_GetPokemonBaseStats(species, &speciesStats);
+
+    return speciesStats.baseHP
+        + speciesStats.baseAttack
+        + speciesStats.baseDefense
+        + speciesStats.baseSpeed
+        + speciesStats.baseSpAttack
+        + speciesStats.baseSpDefense;
 }
 
 bool32 IsTruantMonVulnerable(u32 battlerAI, u32 opposingBattler)
@@ -1392,7 +1400,7 @@ u32 AI_GetWeather(struct AiLogicData *aiData)
         return B_WEATHER_NONE;
     if (!AI_WeatherHasEffect(aiData))
         return B_WEATHER_NONE;
-    return gBattleWeather;
+    return GetWeather();
 }
 
 u32 AI_GetBattlerMoveTargetType(u32 battlerId, u32 move)
@@ -2522,10 +2530,11 @@ static bool32 PartyBattlerShouldAvoidHazards(u32 currBattler, u32 switchBattler)
     u32 ability = GetMonAbility(mon);   // we know our own party data
     u32 holdEffect;
     u32 species = GetMonData(mon, MON_DATA_SPECIES);
+    u32 otId = GetMonData(mon, MON_DATA_OT_ID);
     u32 flags = gSideStatuses[GetBattlerSide(currBattler)] & (SIDE_STATUS_SPIKES | SIDE_STATUS_STEALTH_ROCK | SIDE_STATUS_STICKY_WEB | SIDE_STATUS_TOXIC_SPIKES);
     s32 hazardDamage = 0;
-    u32 type1 = gSpeciesInfo[species].types[0];
-    u32 type2 = gSpeciesInfo[species].types[1];
+    u32 type1 = GetTypeBySpecies(species, 0, otId);
+    u32 type2 = GetTypeBySpecies(species, 1, otId);
     u32 maxHp = GetMonData(mon, MON_DATA_MAX_HP);
 
     if (flags == 0)

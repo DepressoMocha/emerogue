@@ -30,6 +30,7 @@
 #include "constants/rgb.h"
 #include "constants/songs.h"
 
+#include "rogue_baked.h"
 #include "rogue_pokedex.h"
 #include "rogue_quest.h"
 
@@ -3978,7 +3979,7 @@ static void Task_DisplayCaughtMonDexPage(u8 taskId)
         gTasks[taskId].tState++;
         break;
     case 4:
-        spriteId = CreateMonPicSprite(NationalPokedexNumToSpecies(dexNum), 0, ((u16)gTasks[taskId].tPersonalityHi << 16) | (u16)gTasks[taskId].tPersonalityLo, GetGenderForSpecies(NationalPokedexNumToSpecies(dexNum), 0), TRUE, MON_PAGE_X, MON_PAGE_Y, 0, TAG_NONE);
+        spriteId = CreateMonPicSprite(NationalPokedexNumToSpecies(dexNum), FALSE, 0, ((u16)gTasks[taskId].tPersonalityHi << 16) | (u16)gTasks[taskId].tPersonalityLo, GetGenderForSpecies(NationalPokedexNumToSpecies(dexNum), 0), TRUE, MON_PAGE_X, MON_PAGE_Y, 0, TAG_NONE);
         gSprites[spriteId].oam.priority = 0;
         BeginNormalPaletteFade(PALETTES_ALL, 0, 0x10, 0, RGB_BLACK);
         SetVBlankCallback(gPokedexVBlankCB);
@@ -4283,6 +4284,9 @@ s8 GetSetPokedexSpeciesFlag(u16 species, u8 caseId)
     {
         switch (caseId)
         {
+        case FLAG_SET_NONE:
+            dexState = DEX_STATE_NONE;
+            break;
         case FLAG_SET_SEEN:
             dexState = max(dexState, DEX_STATE_SEEN);
             break;
@@ -4771,8 +4775,8 @@ static int DoPokedexSearch(u8 dexMode, u8 order, u8 abcGroup, u8 bodyColor, u8 t
                 {
                     species = NationalPokedexNumToSpecies(sPokedexView->pokedexList[i].dexNum);
 
-                    types[0] = gSpeciesInfo[species].types[0];
-                    types[1] = gSpeciesInfo[species].types[1];
+                    types[0] = GetTypeBySpecies(species, 0, 0);
+                    types[1] = GetTypeBySpecies(species, 1, 0);
                     if (types[0] == type1 || types[1] == type1)
                     {
                         sPokedexView->pokedexList[resultsCount] = sPokedexView->pokedexList[i];
@@ -4789,8 +4793,8 @@ static int DoPokedexSearch(u8 dexMode, u8 order, u8 abcGroup, u8 bodyColor, u8 t
                 {
                     species = NationalPokedexNumToSpecies(sPokedexView->pokedexList[i].dexNum);
 
-                    types[0] = gSpeciesInfo[species].types[0];
-                    types[1] = gSpeciesInfo[species].types[1];
+                    types[0] = GetTypeBySpecies(species, 0, 0);
+                    types[1] = GetTypeBySpecies(species, 1, 0);
                     if ((types[0] == type1 && types[1] == type2) || (types[0] == type2 && types[1] == type1))
                     {
                         sPokedexView->pokedexList[resultsCount] = sPokedexView->pokedexList[i];

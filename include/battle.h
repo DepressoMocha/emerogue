@@ -128,6 +128,7 @@ struct ProtectStruct
     u32 kingsShielded:1;
     u32 banefulBunkered:1;
     u32 obstructed:1;
+    u32 sheltered:1;
     u32 endured:1;
     u32 noValidMoves:1;
     u32 helpingHand:1;
@@ -764,8 +765,8 @@ struct BattleStruct
     u8 stickySyrupdBy[MAX_BATTLERS_COUNT];
     u8 supersweetSyrup[NUM_BATTLE_SIDES];
     u8 supremeOverlordCounter[MAX_BATTLERS_COUNT];
+	u8 boosterEnergyActivates;
     u8 distortedTypeMatchups;
-    u8 boosterEnergyActivates;
     u8 quickClawRandom[MAX_BATTLERS_COUNT];
     u8 quickDrawRandom[MAX_BATTLERS_COUNT];
 };
@@ -816,10 +817,12 @@ STATIC_ASSERT(sizeof(((struct BattleStruct *)0)->palaceFlags) * 8 >= MAX_BATTLER
 
 #define RESTORE_BATTLER_TYPE(battlerId)                                                     \
 {                                                                                           \
-    gBattleMons[battlerId].type1 = gSpeciesInfo[gBattleMons[battlerId].species].types[0];   \
-    gBattleMons[battlerId].type2 = gSpeciesInfo[gBattleMons[battlerId].species].types[1];   \
+    gBattleMons[battlerId].type1 = GetTypeBySpecies(gBattleMons[battlerId].species, 0, gBattleMons[battlerId].otId);     \
+    gBattleMons[battlerId].type2 = GetTypeBySpecies(gBattleMons[battlerId].species, 1, gBattleMons[battlerId].otId);     \
     gBattleMons[battlerId].type3 = TYPE_MYSTERY;                                            \
 }
+
+#define SHELTERED(battlerId) (Rogue_GetRevisionModeActive() ? gProtectStructs[battlerId].sheltered : FALSE)
 
 #define IS_BATTLER_PROTECTED(battlerId)(gProtectStructs[battlerId].protected                                           \
                                         || gSideStatuses[GetBattlerSide(battlerId)] & SIDE_STATUS_WIDE_GUARD           \

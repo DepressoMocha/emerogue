@@ -195,6 +195,7 @@ gSpecials::
 	def_special RogueDebug_CollectAllQuests
 	def_special RogueDebug_StartBattle
 	def_special RogueDebug_GiveDynamicUniqueMon
+	def_special RogueDebug_PrintTimers
 	def_special RogueGift_EnsureDynamicCustomMonsAreValid
 	def_special Rogue_GetDynamicUniqueMonSpecies
 	def_special Rogue_BufferDynamicUniqueMonCountDown
@@ -229,6 +230,7 @@ gSpecials::
 	def_special Rogue_SetupFollowMonFromParty
 	def_special Rogue_TryEnqueueWildBattleMon
 	def_special Rogue_GetTrainerNum
+	def_special Rogue_HasDefeatedAllRouteTrainers
 	def_special Rogue_PlayStaticTrainerEncounterBGM
 	def_special Rogue_PlayRivalTrainerEncounterBGM
 	def_special Rogue_PlayTeamBossTrainerEncounterBGM
@@ -261,6 +263,7 @@ gSpecials::
 	def_special Rogue_BattleSim_HandleItemWager
 	def_special Rogue_BattleSim_HandleItemIVs
 	def_special Rogue_BattleSim_HandleItemMoney
+	def_special Rogue_BattleTower_GiveReward
 	def_special Rogue_FixPartyMonDetails
 	def_special Rogue_RememberAdventure
 	def_special Rogue_IsValidAdventureToRemember
@@ -295,13 +298,13 @@ gSpecials::
 	def_special Rogue_SwapMonGender
 	def_special Rogue_CanPlantBerries
 	def_special Rogue_CheckDaycareCount
+	def_special Rogue_IsCatchingContestActive
 	def_special Rogue_IsDaycareSlotEmpty
 	def_special Rogue_SwapDaycareMon
 	def_special Rogue_TransformIntoValidDaycareEgg
 	def_special Rogue_SetupDaycareSpeciesGraphics
 	def_special Rogue_HealAlivePlayerParty
 	def_special Rogue_OnHealWithNurse
-	def_special Rogue_SelectCatchingContestMode
 	def_special Rogue_BufferContestMode
 	def_special Rogue_CatchingContestBegin
 	def_special Rogue_CatchingContestEnd
@@ -334,6 +337,8 @@ gSpecials::
 	def_special RogueAdv_WarpLastInteractedRoom
 	def_special RoguePlayer_HandleEasterEggOutfitUnlocks
 	def_special RogueSafari_CompactEmptyEntries
+	def_special RogueSafari_ResetAllRegularEntries
+	def_special RogueSafari_ResetAllLegendEntries
 	def_special GameShow_RestartGameShow
 	def_special GameShow_SelectRandomSpecies
 	def_special GameShow_BufferSpecies

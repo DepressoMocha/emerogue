@@ -283,11 +283,7 @@ gBattleScriptsForMoveEffects::
 	.4byte BattleScript_EffectHealPulse               @ EFFECT_HEAL_PULSE
 	.4byte BattleScript_EffectQuash                   @ EFFECT_QUASH
 	.4byte BattleScript_EffectIonDeluge               @ EFFECT_ION_DELUGE
-#if 0 @B_USE_FROSTBITE == TRUE
-	.4byte BattleScript_EffectFrostbiteHit            @ EFFECT_FREEZE_DRY
-#else
-	.4byte BattleScript_EffectFreezeHit               @ EFFECT_FREEZE_DRY
-#endif
+	.4byte BattleScript_EffectFreezeDryHit            @ EFFECT_FREEZE_DRY
 	.4byte BattleScript_EffectTopsyTurvy              @ EFFECT_TOPSY_TURVY
 	.4byte BattleScript_EffectMistyTerrain            @ EFFECT_MISTY_TERRAIN
 	.4byte BattleScript_EffectGrassyTerrain           @ EFFECT_GRASSY_TERRAIN
@@ -850,13 +846,14 @@ BattleScript_CorrosiveGasFail:
 	waitmessage B_WAIT_TIME_LONG
 	goto BattleScript_MoveEnd
 
+BattleScript_EffectMakeItRain::
+	setmoveeffect MOVE_EFFECT_SP_ATK_MINUS_1 | MOVE_EFFECT_AFFECTS_USER | MOVE_EFFECT_CERTAIN
+	seteffectprimary
+	goto BattleScript_SetEffectPrimaryReturn
+
 BattleScript_EffectSpinOut::
 	setmoveeffect MOVE_EFFECT_SPD_MINUS_2 | MOVE_EFFECT_AFFECTS_USER | MOVE_EFFECT_CERTAIN
 	goto BattleScript_EffectHit
-
-BattleScript_EffectMakeItRain::
-	setmoveeffect MOVE_EFFECT_SP_ATK_MINUS_1 | MOVE_EFFECT_AFFECTS_USER | MOVE_EFFECT_CERTAIN
-	goto BattleScript_SetEffectPrimaryReturn
 
 BattleScript_EffectClangingScales::
 	setmoveeffect MOVE_EFFECT_DEF_MINUS_1 | MOVE_EFFECT_AFFECTS_USER | MOVE_EFFECT_CERTAIN
@@ -1198,7 +1195,7 @@ BattleScript_FirstChargingTurnMeteorBeam::
 	printfromtable gFirstTurnOfTwoStringIds
 	waitmessage B_WAIT_TIME_LONG
 	setmoveeffect MOVE_EFFECT_SP_ATK_PLUS_1 | MOVE_EFFECT_AFFECTS_USER
-	seteffectsecondary
+	seteffectsecondary TRIGGER_ON_MOVE
 	return
 
 BattleScript_EffectElectroShot::
@@ -1225,7 +1222,7 @@ BattleScript_FirstChargingTurnElectroShot::
 	printfromtable gFirstTurnOfTwoStringIds
 	waitmessage B_WAIT_TIME_LONG
 	setmoveeffect MOVE_EFFECT_SP_ATK_PLUS_1 | MOVE_EFFECT_AFFECTS_USER
-	seteffectsecondary
+	seteffectsecondary TRIGGER_ON_MOVE
 	return
 
 BattleScript_EffectSkyDrop:
@@ -1939,7 +1936,7 @@ BattleScript_SpectralThiefSteal::
 	setbyte sB_ANIM_ARG2, 0
 	playanimation BS_ATTACKER, B_ANIM_STATS_CHANGE, sB_ANIM_ARG1
 	spectralthiefprintstats
-	return
+	goto BattleScript_HitTargetHitAnimation
 
 BattleScript_EffectSpectralThief:
 	setmoveeffect MOVE_EFFECT_SPECTRAL_THIEF
@@ -2951,6 +2948,10 @@ BattleScript_EffectIonDeluge:
 	waitmessage B_WAIT_TIME_LONG
 	goto BattleScript_MoveEnd
 
+BattleScript_EffectFreezeDryHit:
+	rogue_jumpifrevised BattleScript_EffectFrostbiteHit
+	goto BattleScript_EffectFreezeHit
+
 BattleScript_EffectQuash:
 	attackcanceler
 	accuracycheck BattleScript_PrintMoveMissed, ACC_CURR_MOVE
@@ -3464,6 +3465,8 @@ BattleScript_HitFromCritCalc::
 BattleScript_HitFromAtkAnimation::
 	attackanimation
 	waitanimation
+	handleSpectralThief BattleScript_SpectralThiefSteal @Spectral thief is special among the special cases, so we'll use this solution for now
+BattleScript_HitTargetHitAnimation::
 	effectivenesssound
 	hitanimation BS_TARGET
 	waitstate
@@ -7934,7 +7937,7 @@ BattleScript_WishComesTrue::
 	playanimation BS_TARGET, B_ANIM_WISH_HEAL
 	printstring STRINGID_PKMNWISHCAMETRUE
 	waitmessage B_WAIT_TIME_LONG
-	orword gHitMarker, HITMARKER_IGNORE_SUBSTITUTE
+	orword gHitMarker, HITMARKER_IGNORE_SUBSTITUTE | HITMARKER_IGNORE_DISGUISE
 	healthbarupdate BS_TARGET
 	datahpupdate BS_TARGET
 	printstring STRINGID_PKMNREGAINEDHEALTH
@@ -9752,7 +9755,7 @@ BattleScript_SpikyShieldRet::
 BattleScript_KingsShieldEffect::
 	orword gHitMarker, HITMARKER_IGNORE_SUBSTITUTE | HITMARKER_PASSIVE_DAMAGE
 	bichalfword gMoveResultFlags, MOVE_RESULT_NO_EFFECT
-	seteffectsecondary
+	seteffectsecondary TRIGGER_ON_PROTECT
 	setmoveeffect 0
 	copybyte sBATTLER, gBattlerTarget
 	copybyte gBattlerTarget, gBattlerAttacker
@@ -9763,7 +9766,15 @@ BattleScript_KingsShieldEffect::
 BattleScript_BanefulBunkerEffect::
 	orword gHitMarker, HITMARKER_IGNORE_SUBSTITUTE | HITMARKER_STATUS_ABILITY_EFFECT | HITMARKER_PASSIVE_DAMAGE
 	bichalfword gMoveResultFlags, MOVE_RESULT_NO_EFFECT
-	seteffectsecondary
+	seteffectsecondary TRIGGER_ON_PROTECT
+	setmoveeffect 0
+	orhalfword gMoveResultFlags, MOVE_RESULT_MISSED
+	return
+
+BattleScript_ShelterEffect_Revised::
+	orword gHitMarker, HITMARKER_IGNORE_SUBSTITUTE | HITMARKER_PASSIVE_DAMAGE
+	bichalfword gMoveResultFlags, MOVE_RESULT_NO_EFFECT
+	seteffectsecondary TRIGGER_ON_PROTECT
 	setmoveeffect 0
 	orhalfword gMoveResultFlags, MOVE_RESULT_MISSED
 	return
@@ -9780,14 +9791,14 @@ BattleScript_GooeyActivates::
 	waitstate
 	call BattleScript_AbilityPopUp
 	swapattackerwithtarget  @ for defiant, mirror armor
-	seteffectsecondary
+	seteffectsecondary TRIGGER_ON_MOVE
 	swapattackerwithtarget @ kleen: restore the target/attacker, for knock off and I imagine others 
 	return
 
 BattleScript_AbilityStatusEffect::
 	waitstate
 	call BattleScript_AbilityPopUp
-	seteffectsecondary
+	seteffectsecondary TRIGGER_ON_ABILITY
 	return
 
 BattleScript_BattleBondActivatesOnMoveEndAttacker::
@@ -9959,6 +9970,16 @@ BattleScript_BerryCureSlpRet::
 	updatestatusicon BS_SCRIPTING
 	removeitem BS_SCRIPTING
 	return
+
+BattleScript_BoosterEnergyEnd2::
+	playanimation BS_SCRIPTING, B_ANIM_HELD_ITEM_EFFECT, sB_ANIM_ARG1
+	call BattleScript_AbilityPopUp
+	printstring STRINGID_BOOSTERENERGYACTIVATES
+	waitmessage B_WAIT_TIME_MED
+	printstring STRINGID_STATWASHEIGHTENED
+	waitmessage B_WAIT_TIME_MED
+	removeitem BS_SCRIPTING
+	end2
 
 BattleScript_GemActivates::
 	playanimation BS_ATTACKER, B_ANIM_HELD_ITEM_EFFECT
@@ -11185,17 +11206,6 @@ BattleScript_BerserkGeneRet_End:
 	restoretarget
 	removeitem BS_SCRIPTING
 	end3
-
-BattleScript_BoosterEnergyEnd2::
-	playanimation BS_SCRIPTING, B_ANIM_HELD_ITEM_EFFECT, sB_ANIM_ARG1
-	call BattleScript_AbilityPopUpTarget
-	waitanimation
-	printstring STRINGID_BOOSTERENERGYACTIVATES
-	waitmessage B_WAIT_TIME_MED
-	printstring STRINGID_STATWASHEIGHTENED
-	waitmessage B_WAIT_TIME_MED
-	removeitem BS_SCRIPTING
-	end2
 
 BattleScript_EffectSnow::
 	attackcanceler

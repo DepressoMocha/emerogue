@@ -161,7 +161,7 @@
                     {
                         "PRE_BATTLE_TAUNT": "Ah!\\pYou look like a strong trainer!",
                         "POST_BATTLE_TAUNT": "Ouch…",
-                        "POST_BATTLE_CLOSER": "You're strong...\\pNot at strong as I was in my prime."
+                        "POST_BATTLE_CLOSER": "Yes. You are strong.\\pNot at strong as I was in my prime."
                     }
                 ],
                 "preferred_mon_gender": "FEMALE",

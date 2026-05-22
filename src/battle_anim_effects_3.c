@@ -2395,10 +2395,11 @@ void AnimTask_MegaSwapSprite(u8 taskId)
         gTasks[taskId].data[11] = gSprites[spriteId].x; // Save battler position
 		gSprites[spriteId].x = -64; // hide it from screen to avoid the blip/glitch effect when swapping the sprite
         gTasks[taskId].data[10] = gBattleAnimArgs[0];
+        gTasks[taskId].data[12] = gBattleAnimArgs[1];
         gTasks[taskId].data[0]++;
         break;
     case 1:
-        HandleSpeciesGfxDataChange(gBattleAnimAttacker, gBattleAnimTarget, gTasks[taskId].data[10], gBattleAnimArgs[1]);
+        HandleSpeciesGfxDataChange(gBattleAnimAttacker, gBattleAnimTarget, gTasks[taskId].data[10], gTasks[taskId].data[12]);
         GetBgDataForTransform(&animBg, gBattleAnimAttacker);
 
         if (IsContest())
@@ -5722,19 +5723,18 @@ static void AnimRecycle_Step(struct Sprite *sprite)
 }
 
 void AnimTask_GetWeather(u8 taskId)
-{
-    bool32 utilityUmbrellaAffected = GetBattlerHoldEffect(gBattleAnimAttacker, TRUE) == HOLD_EFFECT_UTILITY_UMBRELLA;
-
+{        
+    u32 weather = GetAttackerWeather(GetBattlerHoldEffect(gBattleAnimAttacker, TRUE), GetBattlerAbility(gBattleAnimAttacker), gWeatherMoveAnim);
     gBattleAnimArgs[ARG_RET_ID] = ANIM_WEATHER_NONE;
-    if (gWeatherMoveAnim & B_WEATHER_SUN && !utilityUmbrellaAffected)
+    if (weather & B_WEATHER_SUN)
         gBattleAnimArgs[ARG_RET_ID] = ANIM_WEATHER_SUN;
-    else if (gWeatherMoveAnim & B_WEATHER_RAIN && !utilityUmbrellaAffected)
+    else if (weather & B_WEATHER_RAIN)
         gBattleAnimArgs[ARG_RET_ID] = ANIM_WEATHER_RAIN;
-    else if (gWeatherMoveAnim & B_WEATHER_SANDSTORM)
+    else if (weather & B_WEATHER_SANDSTORM)
         gBattleAnimArgs[ARG_RET_ID] = ANIM_WEATHER_SANDSTORM;
-    else if (gWeatherMoveAnim & B_WEATHER_HAIL)
+    else if (weather & B_WEATHER_HAIL)
         gBattleAnimArgs[ARG_RET_ID] = ANIM_WEATHER_HAIL;
-    else if (gWeatherMoveAnim & B_WEATHER_SNOW)
+    else if (weather & B_WEATHER_SNOW)
         gBattleAnimArgs[ARG_RET_ID] = ANIM_WEATHER_SNOW;
 
     DestroyAnimVisualTask(taskId);

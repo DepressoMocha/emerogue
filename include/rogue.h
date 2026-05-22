@@ -6,14 +6,12 @@ struct RoguePartyMon
 {
     bool8 hasPendingEvo : 1;
     u8 lastPopupLevel : 7;
-
-    bool8 isSafariIllegal : 1;
-    u8 pad0 : 7;
-
-    u8 pad1[2];
+    u8 pad0[3];
 };
 
+#ifndef ROGUE_BAKING
 STATIC_ASSERT(sizeof(struct RoguePartyMon) == 4, SizeOfRoguePartyMon);
+#endif
 
 // Minimal version of mon info to allow easy tracking for safari area
 // Split into 32bit blocks
@@ -40,8 +38,10 @@ struct RogueSafariMon
     u8 customMonLookup; // (We can only store a limited number of custom mons in the safari)
 };
 
+#ifndef ROGUE_BAKING
 //STATIC_ASSERT(sizeof(struct RogueSafariMon) == 8, SizeOfRogueSafariMon);
 STATIC_ASSERT(sizeof(struct RogueSafariMon) == 20, SizeOfRogueSafariMon);
+#endif
 
 struct RogueRoamerMon
 {
@@ -65,7 +65,9 @@ struct RogueRoamerMon
     u32 unused1     : 16; 
 };
 
+#ifndef ROGUE_BAKING
 STATIC_ASSERT(sizeof(struct RogueRoamerMon) == 12, SizeOfRogueRoamerMon);
+#endif
 
 // Adventure Path settings
 //
@@ -128,6 +130,7 @@ struct RogueAdvPath
     u8 currentRoomType;
     u8 roomCount;
     u8 pathLength;
+    u8 experimental_RouteColumn; // todo maybe union this?
     s8 pathMinY;
     s8 pathMaxY;
     u8 isOverviewActive : 1;
@@ -231,33 +234,55 @@ struct RoguePokemonFacade
 struct RogueDaycarePokemon
 {
     struct RogueBoxPokemonFacade boxMonFacade;
-    u8 isSafariIllegal : 1;
+    u8 unused : 1;
 };
 
 struct RoguePartySnapshot
 {
     u32 partyPersonalities[PARTY_SIZE];
+    u32 partyOtIds[PARTY_SIZE];
     u16 partySpeciesGfx[PARTY_SIZE];
+};
+
+struct GameModeRules
+{
+    u8 initialLevelOffset;
+    u8 levelOffsetInterval;
+    u8 enterPartySize;
+    u8 adventureGenerator;
+    u8 trainerOrder : 2;
+    u8 disableMainQuests : 1;
+    u8 disableChallengeQuests : 1;
+    u8 disablePerBadgeLvlCaps : 1;
+    u8 forceEndGameTrainers : 1;
+    u8 forceEndGameRouteItems : 1;
+    u8 forceRandomanAlwaysActive : 1;
+    u8 disableRivalEncounters : 1;
+    u8 disableRouteTrainers : 1;
+    u8 forceFullShopInventory : 1;
 };
 
 struct RogueRunData
 {
+    struct GameModeRules gameRules;
     struct RogueWildEncounters wildEncounters;
     struct RoguePartySnapshot partySnapshots[ROGUE_MAX_BOSS_COUNT + 2];
     struct RoguePokemonFacade labParty[LAB_MON_COUNT];
+    u16 subSeeds[ROGUE_SUBSEED_COUNT];
     u16 bossTrainerNums[ROGUE_MAX_BOSS_COUNT];
     u16 rivalSpecies[ROGUE_RIVAL_TOTAL_MON_COUNT];
     u16 legendarySpecies[ADVPATH_LEGEND_COUNT];
     u16 teamEncounterRooms[ADVPATH_TEAM_ENCOUNTER_COUNT];
-    u16 dynamicTRMoves[NUM_TECHNICAL_RECORDS];
+    u16 dynamicTRMoves[CAPACITY_TECHNICAL_RECORDS];
     u16 partyHeldItems[PARTY_SIZE];
     u16 dynamicTrainerNums[ROGUE_MAX_ACTIVE_TRAINER_COUNT];
     u8 legendaryDifficulties[ADVPATH_LEGEND_COUNT];
     u8 teamEncounterDifficulties[ADVPATH_TEAM_ENCOUNTER_COUNT];
     u8 rivalEncounterDifficulties[ROGUE_RIVAL_MAX_ROUTE_ENCOUNTERS];
     u8 completedBadges[ROGUE_MAX_BOSS_COUNT];
+    u8 lastShopVisitDifficulty[ROGUE_SHOP_COUNT];
     u8 activeEvoItemFlags[8];
-    u8 activeFormItemFlags[16]; // technically this isn't needed for Vanilla
+    u8 activeFormItemFlags[18]; // technically this isn't needed for Vanilla
     union
     {
         struct RogueCampaignData_Generic generic;
@@ -283,6 +308,7 @@ struct RogueRunData
     u8 terastallizeEnabled : 1;
 #endif
     u8 rareShopEnabled : 1;
+    u8 revisedModeEnabled : 1;
     bool8 isQuickSaveValid : 1;
     bool8 hasPendingRivalBattle : 1;
     bool8 rivalHasShiny : 1;
@@ -626,13 +652,28 @@ struct RoguePokemonCompetitiveSetRules
     bool8 allowMissingMoves : 1;
 };
 
+struct RoguePokemonBaseStats
+{
+    u8 baseHP;
+    u8 baseAttack;
+    u8 baseDefense;
+    u8 baseSpeed;
+    u8 baseSpAttack;
+    u8 baseSpDefense;
+    u8 types[2];
+    u16 abilities[NUM_ABILITY_SLOTS];
+};
+
 struct RoguePokemonProfile
 {
+    struct Evolution const* evolutions;
     struct RoguePokemonCompetitiveSet const* competitiveSets;
     struct LevelUpMove const* levelUpMoves;
     u16 const* tutorMoves;
+    struct RoguePokemonBaseStats baseStats;
     u16 monFlags;
     u16 competitiveSetCount;
+    u8 evolutionCount;
 };
 
 struct RogueRideMonState
@@ -676,6 +717,7 @@ struct RogueSaveBlock
     struct RogueHubMap hubMap;
     struct RogueDifficultyConfig difficultyConfig;
     u16 timeOfDayMinutes;
+    u16 lastKnownNumSpecies;
     u8 seasonCounter;
 };
 
@@ -686,7 +728,8 @@ struct RogueSpeciesBakedData
     u32 unused1 : 3;
 
     u32 evolutionCount : 8;
-    u32 unused2 : 24;
+    u32 evolutionChainTypeFlags_Revised : 18;
+    u32 unused2 : 6;
 };
 
 struct RogueFollowMonGraphicsInfo
@@ -706,6 +749,7 @@ struct FormChange
 
 #endif
 
+#ifndef ROGUE_BAKING
 STATIC_ASSERT(sizeof(struct RogueSpeciesBakedData) == 8, SizeOfRogueSpeciesBakedData);
 
 extern const struct RogueRouteData gRogueRouteTable;
@@ -717,11 +761,6 @@ extern const struct RogueTrainer gRogueTrainers[];
 extern const u16 gRogueTrainerCount;
 extern const struct RogueBattleMusic gRogueTrainerMusic[];
 
-extern const struct RoguePokemonProfile gRoguePokemonProfiles[NUM_SPECIES];
-extern u16 const gRoguePokemonHeldItemUsages[ITEMS_COUNT];
-extern u16 const gRoguePokemonMoveUsages[MOVES_COUNT];
-extern u16 const gRoguePokemonSpecialMoveUsages[MOVES_COUNT];
-
 extern const struct RoguePokedexVariant gPokedexVariants[POKEDEX_VARIANT_COUNT];
 extern const struct RoguePokedexRegion gPokedexRegions[POKEDEX_REGION_COUNT];
 
@@ -729,6 +768,7 @@ extern const struct RogueHubArea gRogueHubAreas[HUB_AREA_COUNT];
 extern const struct RogueAreaUpgrade gRogueHubUpgrades[HUB_UPGRADE_COUNT];
 extern const u8 gRogueTypeWeatherTable[];
 extern const struct RogueEncounterMap gRogueTypeToEliteRoom[];
+#endif
 
 
 #endif  // GUARD_ROGUE_H

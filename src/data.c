@@ -162,6 +162,24 @@ const struct SpriteFrameImage gTrainerBackPicTable_Dawn[] =
     {gTrainerBackPic_Dawn + TRAINER_PIC_SIZE * 4, TRAINER_PIC_SIZE},
 };
 
+const struct SpriteFrameImage gTrainerBackPicTable_Calem[] =
+{
+    {gTrainerBackPic_Calem + TRAINER_PIC_SIZE * 0, TRAINER_PIC_SIZE},
+    {gTrainerBackPic_Calem + TRAINER_PIC_SIZE * 1, TRAINER_PIC_SIZE},
+    {gTrainerBackPic_Calem + TRAINER_PIC_SIZE * 2, TRAINER_PIC_SIZE},
+    {gTrainerBackPic_Calem + TRAINER_PIC_SIZE * 3, TRAINER_PIC_SIZE},
+    {gTrainerBackPic_Calem + TRAINER_PIC_SIZE * 4, TRAINER_PIC_SIZE},
+};
+
+const struct SpriteFrameImage gTrainerBackPicTable_Serena[] =
+{
+    {gTrainerBackPic_Serena + TRAINER_PIC_SIZE * 0, TRAINER_PIC_SIZE},
+    {gTrainerBackPic_Serena + TRAINER_PIC_SIZE * 1, TRAINER_PIC_SIZE},
+    {gTrainerBackPic_Serena + TRAINER_PIC_SIZE * 2, TRAINER_PIC_SIZE},
+    {gTrainerBackPic_Serena + TRAINER_PIC_SIZE * 3, TRAINER_PIC_SIZE},
+    {gTrainerBackPic_Serena + TRAINER_PIC_SIZE * 4, TRAINER_PIC_SIZE},
+};
+
 const struct SpriteFrameImage gTrainerBackPicTable_CommunityZefa[] =
 {
     {gTrainerBackPic_CommunityZefa + TRAINER_PIC_SIZE * 0, TRAINER_PIC_SIZE},
@@ -176,6 +194,15 @@ const struct SpriteFrameImage gTrainerBackPicTable_CommunityNacholord[] =
     {gTrainerBackPic_CommunityNacholord + TRAINER_PIC_SIZE * 1, TRAINER_PIC_SIZE},
     {gTrainerBackPic_CommunityNacholord + TRAINER_PIC_SIZE * 2, TRAINER_PIC_SIZE},
     {gTrainerBackPic_CommunityNacholord + TRAINER_PIC_SIZE * 3, TRAINER_PIC_SIZE},
+};
+
+const struct SpriteFrameImage gTrainerBackPicTable_CommunityPokabbie[] =
+{
+    {gTrainerBackPic_CommunityPokabbie + TRAINER_PIC_SIZE * 0, TRAINER_PIC_SIZE},
+    {gTrainerBackPic_CommunityPokabbie + TRAINER_PIC_SIZE * 1, TRAINER_PIC_SIZE},
+    {gTrainerBackPic_CommunityPokabbie + TRAINER_PIC_SIZE * 2, TRAINER_PIC_SIZE},
+    {gTrainerBackPic_CommunityPokabbie + TRAINER_PIC_SIZE * 3, TRAINER_PIC_SIZE},
+    {gTrainerBackPic_CommunityPokabbie + TRAINER_PIC_SIZE * 4, TRAINER_PIC_SIZE},
 };
 
 const union AnimCmd sAnim_GeneralFrame0[] =
@@ -362,9 +389,16 @@ const union AnimCmd *const gAnims_MonPic[MAX_MON_PIC_FRAMES] =
 #include "data/rogue_routes.h"
 #include "data/rogue_strings.h"
 #include "data/rogue_trainers.h"
-#include "data/rogue_pokemon_profiles.h"
 #include "data/rogue_pokedex.h"
 #include "data/rogue_bake_data.h"
+
+#ifdef ROGUE_EXPANSION
+#include "data/rogue/pokemon_expansion_profiles.h"
+#include "data/rogue/pokemon_expansion_profiles_revised.h"
+#else
+#include "data/rogue/pokemon_vanilla_profiles.h"
+#include "data/rogue/pokemon_vanilla_profiles_revised.h"
+#endif
 
 #include "data/rogue/battle_music.h"
 #include "data/rogue/trainers.h"

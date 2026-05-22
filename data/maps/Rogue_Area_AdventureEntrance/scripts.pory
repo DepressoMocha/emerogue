@@ -279,7 +279,7 @@ script Rogue_Area_AdventureEntrance_SpeakNurse
         else
         {
             // Give player the daycare phone if they didn't pick it up before exiting
-            hubupgradeunlocked(HUB_UPGRADE_DAY_CARE_PHONE)
+            hubupgradeunlocked(HUB_UPGRADE_DAY_CARE_PHONE0)
             if(var(VAR_RESULT) == TRUE)
             {
                 checkitem(ITEM_DAYCARE_PHONE)
@@ -433,6 +433,10 @@ script Rogue_StartAdventureInternal
             applymovement(OBJ_EVENT_ID_PLAYER, Rogue_Adventure_WalkPlayer)
             waitmovement(0)
         }
+
+        
+        special(RogueDebug_PrintTimers)
+        delay(0)
 
         setflag(FLAG_ROGUE_LEFT_ON_RUN)
         setrespawn(HEAL_LOCATION_ROGUE_HUB)
@@ -736,7 +740,7 @@ script Rogue_Area_AdventureEntrance_MeetPokabbie
     call(Rogue_Area_AdventureEntrance_PokabbieEnterMovement)
     waitmovement(0)
 
-    msgbox(format("POKABBIE: Phew…\nAll done!\pI've got a few upgrades for you!\pFirstly, your Pokédex can now change it's mode to different Regions.\pHere, take a look."))
+    msgbox(format("POKABBIE: Phew…\nAll done!\pI've got a few upgrades for you!\pFirstly, your Pokédex can now change its mode to different Regions.\pHere, take a look."))
 
     waitse
     special(Special_ViewRoguePokedex)

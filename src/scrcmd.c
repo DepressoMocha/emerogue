@@ -690,7 +690,11 @@ static bool8 RunPauseTimer(void)
 bool8 ScrCmd_delay(struct ScriptContext *ctx)
 {
     sPauseCounter = ScriptReadHalfword(ctx);
-    SetupNativeScript(ctx, RunPauseTimer);
+
+    // Allow single frame delay
+    if(sPauseCounter != 0)
+        SetupNativeScript(ctx, RunPauseTimer);
+        
     return TRUE;
 }
 
@@ -1520,9 +1524,47 @@ bool8 ScrCmd_showmonpic(struct ScriptContext *ctx)
     u16 species = VarGet(ScriptReadHalfword(ctx));
     u8 x = ScriptReadByte(ctx);
     u8 y = ScriptReadByte(ctx);
+    bool8 isShiny = FALSE;
+    bool8 isObscured = ScriptReadByte(ctx);
+    u32 otId = 0;
+    u32 personality = 0;
+    u8 gender = MON_MALE;
+
+    ScriptMenu_ShowPokemonPic(species, x, y, isShiny, otId, personality, gender, isObscured);
+    return FALSE;
+}
+
+bool8 ScrCmd_showplayerpartypic(struct ScriptContext *ctx)
+{
+    u8 index = VarGet(ScriptReadHalfword(ctx));
+    u8 x = ScriptReadByte(ctx);
+    u8 y = ScriptReadByte(ctx);
     bool8 isObscured = ScriptReadByte(ctx);
 
-    ScriptMenu_ShowPokemonPic(species, x, y, isObscured);
+    u16 species = GetMonData(&gPlayerParty[index], MON_DATA_SPECIES_OR_EGG);
+    bool8 isShiny = IsMonShiny(&gPlayerParty[index]);
+    u32 otId = GetMonData(&gPlayerParty[index], MON_DATA_OT_ID);
+    u32 personality = GetMonData(&gPlayerParty[index], MON_DATA_PERSONALITY);
+    u8 gender = GetMonGender(&gPlayerParty[index]);
+
+    ScriptMenu_ShowPokemonPic(species, x, y, isShiny, otId, personality, gender, isObscured);
+    return FALSE;
+}
+
+bool8 ScrCmd_showenemypartypic(struct ScriptContext *ctx)
+{
+    u8 index = VarGet(ScriptReadHalfword(ctx));
+    u8 x = ScriptReadByte(ctx);
+    u8 y = ScriptReadByte(ctx);
+    bool8 isObscured = ScriptReadByte(ctx);
+
+    u16 species = GetMonData(&gEnemyParty[index], MON_DATA_SPECIES_OR_EGG);
+    bool8 isShiny = IsMonShiny(&gEnemyParty[index]);
+    u32 otId = GetMonData(&gEnemyParty[index], MON_DATA_OT_ID);
+    u32 personality = GetMonData(&gEnemyParty[index], MON_DATA_PERSONALITY);
+    u8 gender = GetMonGender(&gEnemyParty[index]);
+
+    ScriptMenu_ShowPokemonPic(species, x, y, isShiny, otId, personality, gender, isObscured);
     return FALSE;
 }
 

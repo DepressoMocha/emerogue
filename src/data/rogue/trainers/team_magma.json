@@ -54,7 +54,7 @@
                 "encounter_text":
                 [
                     {
-                        "PRE_BATTLE_OPENNING": "{STR_VAR_1}: I've seen you poking around uninvited.\\pPulling cheap stunts on Team Magma.",
+                        "PRE_BATTLE_OPENNING": "{STR_VAR_1}: I've seen you poking around uninvited here and there.\\pPulling cheap stunts on Team Magma…",
                         "PRE_BATTLE_TAUNT": "I'll make you regret it!",
                         "POST_BATTLE_TAUNT": "What makes you so adept at handling Pokémon?",
                         "POST_BATTLE_CLOSER": "Humph…\\pThere is nothing you can do.\\pTeam Magma will not stop.\\pThis is where you and I part!"
@@ -288,7 +288,7 @@
                 [
                     {
                         "PRE_BATTLE_TAUNT": "Erm… you don't look like you're supposed to be here.",
-                        "POST_BATTLE_TAUNT": "I guess I was wrong...",
+                        "POST_BATTLE_TAUNT": "I guess I was wrong",
                         "POST_BATTLE_CLOSER": "Sorry. You're not wearing the correct uniform so I got confused."
                     }
                 ],
@@ -339,8 +339,8 @@
                 "encounter_text":
                 [
                     {
-                        "PRE_BATTLE_TAUNT": "You need to calm it!",
-                        "POST_BATTLE_TAUNT": "There, was that so hard?",
+                        "PRE_BATTLE_TAUNT": "Calm it!",
+                        "POST_BATTLE_TAUNT": "Calm it!",
                         "POST_BATTLE_CLOSER": "Have you STILL not calmed down?"
                     }
                 ],

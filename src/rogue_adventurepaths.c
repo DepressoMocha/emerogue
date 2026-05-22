@@ -17,6 +17,7 @@
 
 #include "rogue.h"
 #include "rogue_controller.h"
+#include "rogue_debug.h"
 
 #include "rogue_adventurepaths.h"
 #include "rogue_campaign.h"
@@ -29,8 +30,8 @@
 #define ROOM_TO_WORLD_X 3
 #define ROOM_TO_WORLD_Y 2
 
-#define PATH_MAP_OFFSET_X (4)
-#define PATH_MAP_OFFSET_Y (4)
+#define PATH_MAP_OFFSET_X (7)
+#define PATH_MAP_OFFSET_Y (6)
 
 #define ADJUST_COORDS_X(val) (gRogueAdvPath.pathLength - val - 1)   // invert so we place the first node at the end
 #define ADJUST_COORDS_Y(val) (val - gRogueAdvPath.pathMinY + 1)     // start at coord 0
@@ -108,8 +109,8 @@ struct MetatileConnection
 
 static const struct MetatileOffset sTreeDecorationMetatiles[] = 
 {
-    { 0, 0, METATILE_GeneralHub_Tree_BottomLeft_Sparse },
-    { 1, 0, METATILE_GeneralHub_Tree_BottomRight_Sparse },
+    { 0, 0, METATILE_GeneralHub_Tree_BottomLeft_Dense },
+    { 1, 0, METATILE_GeneralHub_Tree_BottomRight_Dense },
     { 0, -1, METATILE_GeneralHub_Tree_TopLeft_Sparse },
     { 1, -1, METATILE_GeneralHub_Tree_TopRight_Sparse },
     { 0, -2, METATILE_GeneralHub_Tree_TopLeft_CapGrass },
@@ -134,7 +135,7 @@ static u8 SelectObjectMovementTypeForRoom(struct RogueAdvPathRoom* room);
 
 static u8 GetPathGenerationDifficulty()
 {
-    if(Rogue_GetModeRules()->adventureGenerator == ADV_GENERATOR_GAUNTLET)
+    if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_GAUNTLET)
     {
         if(Rogue_GetCurrentDifficulty() == 0)
         {
@@ -168,8 +169,19 @@ static void GeneratePath(struct AdvPathSettings* pathSettings)
         gRogueAdvPath.roomCount = 0;
         gRogueAdvPath.pathLength = pathSettings->totalLength;
 
+        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
+        {
+            // Route column won't be at the final column
+            gRogueAdvPath.experimental_RouteColumn = 3 + RogueRandomRange(3, 0);
+        }
+
+        START_TIMER(ROGUE_ADVPATH_GEN_LAYOUT);
         GenerateFloorLayout(coords, pathSettings);
+        STOP_TIMER(ROGUE_ADVPATH_GEN_LAYOUT);
+
+        START_TIMER(ROGUE_ADVPATH_GEN_ROOM_PLACEMENT);
         GenerateRoomPlacements(pathSettings);
+        STOP_TIMER(ROGUE_ADVPATH_GEN_ROOM_PLACEMENT);
     }
 
     // Store min/max Y coords
@@ -352,6 +364,13 @@ static u8 SelectRoomType_CalculateWeight(u16 weightIndex, u16 roomType, void* da
     case ADVPATH_ROOM_RESTSTOP:
         count = CountRoomType(roomType);
 
+        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
+        {
+            // too many at this point
+            if(count >= 4)
+                return 0;
+        }
+
         // Always want at least 1 rest stop
         if(count == 0)
             return 100;
@@ -383,17 +402,28 @@ static u8 SelectRoomType_CalculateWeight(u16 weightIndex, u16 roomType, void* da
 
     // Only allow 1 but we prefer it over others
     case ADVPATH_ROOM_HONEY_TREE:
-        count = CountRoomType(roomType);
-        if(count == 0)
+        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
         {
-            // Every other badge we want to increase weight otherwise decrease weight but not impossible
-            if((GetPathGenerationDifficulty() - 1) % 2 == 0)
-                return 15;
-            else
-                return 1;
+            count = CountRoomType(roomType);
+            if(count == 0)
+                return 10;
+            
+            return 0;
         }
         else
-            return 0;
+        {
+            count = CountRoomType(roomType);
+            if(count == 0)
+            {
+                // Every other badge we want to increase weight otherwise decrease weight but not impossible
+                if((GetPathGenerationDifficulty() - 1) % 2 == 0)
+                    return 15;
+                else
+                    return 1;
+            }
+            else
+                return 0;
+        }
         break;
 
     // Only allow 1 and cycle weighting every third difficulty
@@ -421,12 +451,55 @@ static u8 SelectRoomType_CalculateWeight(u16 weightIndex, u16 roomType, void* da
 
     // Only allow 1 of this type at once
     case ADVPATH_ROOM_GAMESHOW:
-    case ADVPATH_ROOM_CATCHING_CONTEST:
     case ADVPATH_ROOM_SIGN:
-    case ADVPATH_ROOM_BATTLE_SIM:
         count = CountRoomType(roomType);
         if(count != 0)
             return 0;
+        // else default weight
+        break;
+
+    // Usually only allow 1, but encourage multiple in experimental
+    case ADVPATH_ROOM_BATTLE_SIM:
+    case ADVPATH_ROOM_BATTLE_TOWER:
+        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
+        {
+            count = CountRoomType(roomType);
+            if(count >= 2)
+                return 0;
+            else if(count >= 1)
+                return 1;
+            else
+                return 10;
+        }
+        else
+        {
+            count = CountRoomType(roomType);
+            if(count != 0)
+                return 0;
+            // else default weight
+        }
+        break;
+
+    case ADVPATH_ROOM_CATCHING_CONTEST:
+        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
+        {
+            count = CountRoomType(roomType);
+            if(count >= 3)
+                return 0;
+            else if(count >= 2)
+                return 1;
+            else if(count != 0)
+                return 3;
+            else
+                return 10;
+        }
+        else
+        {
+            count = CountRoomType(roomType);
+            if(count != 0)
+                return 0;
+            // else default weight
+        }
         break;
 
     // We really want this to spawn when we allow it to
@@ -457,7 +530,16 @@ static u16 SelectRoomType(u16* activeTypeBuffer, u16 activeTypeCount)
     RogueWeightQuery_Begin();
     {
         RogueWeightQuery_CalculateWeights(SelectRoomType_CalculateWeight, NULL);
-        result = RogueWeightQuery_SelectRandomFromWeights(RogueRandom());
+
+        if(RogueWeightQuery_HasAnyWeights())
+        {
+            result = RogueWeightQuery_SelectRandomFromWeights(RogueRandom());
+        }
+        else
+        {
+            // Error fallback
+            result = ADVPATH_ROOM_WILD_DEN;
+        }
     }
     RogueWeightQuery_End();
 
@@ -533,12 +615,22 @@ static u8 ReplaceRoomEncounters_CalculateWeight(u16 weightIndex, u16 roomId, voi
     case ADVPATH_ROOM_CATCHING_CONTEST:
     case ADVPATH_ROOM_GAMESHOW:
     case ADVPATH_ROOM_BATTLE_SIM:
-        // Don't want to place in first column
-        if(existingRoom->coords.x + 1 == gRogueAdvPath.pathLength)
-            weight -= 40;
-        // Like being placed in the middle columns but can occasionally end up in other one
-        else if(existingRoom->coords.x > 2)
-            weight += 80;
+    case ADVPATH_ROOM_BATTLE_TOWER:
+        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
+        {
+            // Don't place after or before the same type
+            if(IsPrecededByRoomType(existingRoom, roomType) || IsProceededByRoomType(existingRoom, roomType))
+                weight = 0;
+        }
+        else
+        {
+            // Don't want to place in first column
+            if(existingRoom->coords.x + 1 == gRogueAdvPath.pathLength)
+                weight -= 40;
+            // Like being placed in the middle columns but can occasionally end up in other one
+            else if(existingRoom->coords.x > 2)
+                weight += 80;
+        }
         break;
 
     case ADVPATH_ROOM_SIGN:
@@ -570,6 +662,11 @@ static void ReplaceRoomEncounter(u8 fromRoomType, u8 toRoomType)
     RoguePathsQuery_Begin();
     RoguePathsQuery_Reset(QUERY_FUNC_INCLUDE);
     RoguePathsQuery_IsOfType(QUERY_FUNC_INCLUDE, fromRoomType);
+
+    if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
+    {
+        RoguePathsQuery_IsInColumn(QUERY_FUNC_EXCLUDE, gRogueAdvPath.experimental_RouteColumn);
+    }
 
     RogueWeightQuery_Begin();
     {
@@ -623,7 +720,7 @@ static void GenerateRoomPlacements(struct AdvPathSettings* pathSettings)
     // The order of these is important to decide the placement
 
     // For gauntlet, place full rest stop at end always
-    if(Rogue_GetModeRules()->adventureGenerator == ADV_GENERATOR_GAUNTLET)
+    if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_GAUNTLET)
     {
         for(i = 0; i < gRogueAdvPath.roomCount; ++i)
         {
@@ -659,7 +756,7 @@ static void GenerateRoomPlacements(struct AdvPathSettings* pathSettings)
         if(GetPathGenerationDifficulty() == 0)
             chance = 0;
 
-        if(Rogue_GetModeRules()->adventureGenerator == ADV_GENERATOR_GAUNTLET)
+        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_GAUNTLET)
             chance = 0;
 
         if(chance != 0)
@@ -682,7 +779,7 @@ static void GenerateRoomPlacements(struct AdvPathSettings* pathSettings)
 
     // Populate special encounters into a single list
     //
-    if(Rogue_GetModeRules()->adventureGenerator != ADV_GENERATOR_GAUNTLET) // In gauntlet we place these manually
+    if(gRogueRun.gameRules.adventureGenerator != ADV_GENERATOR_GAUNTLET) // In gauntlet we place these manually
     {
         validEncounterList[validEncounterCount++] = ADVPATH_ROOM_RESTSTOP;
         ++minReplaceCount;
@@ -711,31 +808,47 @@ static void GenerateRoomPlacements(struct AdvPathSettings* pathSettings)
     }
 
     // Honey tree
-    if(Rogue_GetModeRules()->adventureGenerator != ADV_GENERATOR_GAUNTLET && GetPathGenerationDifficulty() >= 1 && RogueRandomChance(60, 0))
+    if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
+        validEncounterList[validEncounterCount++] = ADVPATH_ROOM_HONEY_TREE;
+    else if(gRogueRun.gameRules.adventureGenerator != ADV_GENERATOR_GAUNTLET && GetPathGenerationDifficulty() >= 1 && RogueRandomChance(60, 0))
         validEncounterList[validEncounterCount++] = ADVPATH_ROOM_HONEY_TREE;
 
     // Catching contest
-    if(RogueRandomChance(33, 0))
+    if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
+        validEncounterList[validEncounterCount++] = ADVPATH_ROOM_CATCHING_CONTEST;
+    else if(RogueRandomChance(33, 0))
         validEncounterList[validEncounterCount++] = ADVPATH_ROOM_CATCHING_CONTEST;
 
     // Mysterious Sign
-    if(Rogue_GetModeRules()->adventureGenerator != ADV_GENERATOR_GAUNTLET && GetPathGenerationDifficulty() < ROGUE_ELITE_START_DIFFICULTY && RogueRandomChance(40, 0))
+    if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL && GetPathGenerationDifficulty() < ROGUE_ELITE_START_DIFFICULTY)
+        validEncounterList[validEncounterCount++] = ADVPATH_ROOM_SIGN;
+    else if(gRogueRun.gameRules.adventureGenerator != ADV_GENERATOR_GAUNTLET && GetPathGenerationDifficulty() < ROGUE_ELITE_START_DIFFICULTY && RogueRandomChance(40, 0))
         validEncounterList[validEncounterCount++] = ADVPATH_ROOM_SIGN;
 
     // Shrine (Gauntlet will always offer this encounter)
-    if((Rogue_GetModeRules()->adventureGenerator == ADV_GENERATOR_GAUNTLET) || GetPathGenerationDifficulty() == gRogueRun.shrineSpawnDifficulty)
+    if((gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_GAUNTLET) || GetPathGenerationDifficulty() == gRogueRun.shrineSpawnDifficulty)
         validEncounterList[validEncounterCount++] = ADVPATH_ROOM_SHRINE;
 
-    // Battle sim
-    if(Rogue_GetModeRules()->adventureGenerator != ADV_GENERATOR_GAUNTLET && GetPathGenerationDifficulty() >= 1 && RogueRandomChance(33, 0))
+    // Battle Sim / Battle Tower
+    if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
+    {
         validEncounterList[validEncounterCount++] = ADVPATH_ROOM_BATTLE_SIM;
+        validEncounterList[validEncounterCount++] = ADVPATH_ROOM_BATTLE_TOWER;
+    }
+    else if(gRogueRun.gameRules.adventureGenerator != ADV_GENERATOR_GAUNTLET && GetPathGenerationDifficulty() >= 1)
+    {
+        if(RogueRandomChance(50, 0))
+            validEncounterList[validEncounterCount++] = ADVPATH_ROOM_BATTLE_SIM;
+        else
+            validEncounterList[validEncounterCount++] = ADVPATH_ROOM_BATTLE_TOWER;
+    }
 
     {
         bool8 allowDarkDeal = (GetPathGenerationDifficulty() % 3 != 0);
         bool8 allowLab = (GetPathGenerationDifficulty() % 3 != 1);
         bool8 allowGameShow = RogueRandomChance(50, 0);
 
-        if(Rogue_GetModeRules()->adventureGenerator == ADV_GENERATOR_GAUNTLET)
+        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_GAUNTLET)
         {
             allowDarkDeal = TRUE;
             allowLab = FALSE;
@@ -799,7 +912,7 @@ static void GenerateRoomPlacements(struct AdvPathSettings* pathSettings)
         replaceCount = max(replaceCount, minReplaceCount);
         replaceCount = max(replaceCount, freeRoomCount);
 
-        if(Rogue_GetModeRules()->adventureGenerator == ADV_GENERATOR_GAUNTLET)
+        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_GAUNTLET)
         {
             replaceCount = min(replaceCount, validEncounterCount);
         }
@@ -813,6 +926,18 @@ static void GenerateRoomPlacements(struct AdvPathSettings* pathSettings)
     }
 
     // Wild dens
+    if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
+    {
+        // Leave a single column with routes in and that is all
+        for(i = 0; i < gRogueAdvPath.roomCount; ++i)
+        {
+            if(gRogueAdvPath.rooms[i].roomType == ADVPATH_ROOM_ROUTE && gRogueAdvPath.rooms[i].coords.x != gRogueAdvPath.experimental_RouteColumn)
+            {
+                GenerateRoomInstance(i, ADVPATH_ROOM_WILD_DEN);
+            }
+        }
+    }
+    else
     {
         u8 chance;
         u8 chanceFalloff;
@@ -913,7 +1038,7 @@ static void GenerateRoomInstance(u8 roomId, u8 roomType)
             if(GetPathGenerationDifficulty() >= ROGUE_GYM_START_DIFFICULTY + 2)
             {
                 // Only activate after 2nd badge
-                weights[ADVPATH_SUBROOM_RESTSTOP_FULL] = 1;
+                weights[ADVPATH_SUBROOM_RESTSTOP_FULL] = 6;
             }
             else if(GetPathGenerationDifficulty() >= ROGUE_ELITE_START_DIFFICULTY)
             {
@@ -944,7 +1069,7 @@ static void GenerateRoomInstance(u8 roomId, u8 roomType)
                 weights[ADVPATH_SUBROOM_RESTSTOP_FULL] = 0;
 
             // For champ we will always spawn full rest stops, for balance
-            if(Rogue_GetModeRules()->adventureGenerator == ADV_GENERATOR_GAUNTLET || GetPathGenerationDifficulty() >= ROGUE_CHAMP_START_DIFFICULTY)
+            if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_GAUNTLET || GetPathGenerationDifficulty() >= ROGUE_CHAMP_START_DIFFICULTY)
             {
                 gRogueAdvPath.rooms[roomId].roomParams.roomIdx = ADVPATH_SUBROOM_RESTSTOP_FULL;
             }
@@ -1013,6 +1138,9 @@ static void GenerateRoomInstance(u8 roomId, u8 roomType)
         case ADVPATH_ROOM_SIGN:
             // Use same RNG seed as boss so we can generate their team
             gRogueAdvPath.rooms[roomId].rngSeed = gRogueAdvPath.rooms[FindRoomOfType(ADVPATH_ROOM_BOSS)].rngSeed;
+            break;
+
+        case ADVPATH_ROOM_BATTLE_TOWER:
             break;
     }
 
@@ -1100,14 +1228,24 @@ bool8 RogueAdv_GenerateAdventurePathsIfRequired()
         bool8 isNewGeneration = gRogueRun.adventureRoomId == ADVPATH_INVALID_ROOM_ID;
 
         pathSettings.generator = &generator;
-        pathSettings.totalLength = 3 + 2; // +2 to account for final encounter and initial split
 
-        if(Rogue_GetModeRules()->adventureGenerator == ADV_GENERATOR_GAUNTLET)
+        // +2 to account for final encounter and initial split
+        switch (gRogueRun.gameRules.adventureGenerator)
         {
+        case ADV_GENERATOR_GAUNTLET:
             if(Rogue_GetCurrentDifficulty() == 0)
                 pathSettings.totalLength = 5 + 2;
             else
                 pathSettings.totalLength = 2;
+            break;
+
+        case ADV_GENERATOR_EXPERIMENTAL:
+            pathSettings.totalLength = 4 + 2;
+            break;
+
+        default:
+            pathSettings.totalLength = 3 + 2;
+            break;
         }
 
         // Select the correct seed
@@ -1139,7 +1277,7 @@ bool8 RogueAdv_GenerateAdventurePathsIfRequired()
             
             for(i = 1; i < MAX_CONNECTION_GENERATOR_COLUMNS; ++i)
             {
-                if(Rogue_GetModeRules()->adventureGenerator == ADV_GENERATOR_GAUNTLET)
+                if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_GAUNTLET)
                 {
                     // Mixed but not too wide
                     generator.connectionsSettingsPerColumn[i].minCount = 1;
@@ -1271,13 +1409,200 @@ bool8 RogueAdv_IsViewingPath()
     return gRogueAdvPath.isOverviewActive != 0;
 }
 
+static bool32 IsPathMetatile(u32 tile)
+{
+    switch (tile)
+    {
+    case METATILE_GeneralHub_SandPath_Centre:
+    case METATILE_GeneralHub_SandPath_Conn_EastWest_North:
+    case METATILE_GeneralHub_SandPath_Conn_EastWest_South:
+    case METATILE_GeneralHub_SandPath_Conn_NorthEast:
+    case METATILE_GeneralHub_SandPath_Conn_NorthSouth_East:
+    case METATILE_GeneralHub_SandPath_Conn_NorthSouth_West:
+    case METATILE_GeneralHub_SandPath_Conn_NorthWest:
+    case METATILE_GeneralHub_SandPath_Conn_SouthEast:
+    case METATILE_GeneralHub_SandPath_Conn_SouthWest:
+    case METATILE_GeneralHub_SandPath_Stone:
+    case METATILE_AdventurePaths_SandPath_Horizontal:
+    case METATILE_AdventurePaths_SandPath_Horizontal_Blocked:
+    case METATILE_AdventurePaths_SandPath_Horizontal_EndEast:
+    case METATILE_AdventurePaths_SandPath_Horizontal_EndWest:
+    case METATILE_AdventurePaths_SandPath_Vertical:
+    case METATILE_AdventurePaths_SandPath_Vertical_Blocked:
+    case METATILE_AdventurePaths_SandPath_Vertical_EndNorth:
+    case METATILE_AdventurePaths_SandPath_Vertical_EndSouth:
+        return TRUE;
+    }
+
+
+    return FALSE;
+}
+
+static bool8 IsInsideMountainTile(u16 x, u16 y)
+{
+    u32 metatile = MapGridGetMetatileIdAt(x + MAP_OFFSET, y + MAP_OFFSET);
+
+    switch (metatile)
+    {
+    case METATILE_GeneralHub_SandPath_Centre:
+    case METATILE_GeneralHub_SandPath_Stone:
+    
+    case METATILE_GeneralHub_Mountain_Centre:
+    case METATILE_GeneralHub_Mountain_Conn_EastWest_North:
+    case METATILE_GeneralHub_Mountain_Conn_EastWest_South:
+    case METATILE_GeneralHub_Mountain_Conn_NorthEast:
+    case METATILE_GeneralHub_Mountain_Conn_NorthSouth_East:
+    case METATILE_GeneralHub_Mountain_Conn_NorthSouth_West:
+    case METATILE_GeneralHub_Mountain_Conn_NorthWest:
+    case METATILE_GeneralHub_Mountain_Conn_SouthEast:
+    case METATILE_GeneralHub_Mountain_Conn_SouthWest:
+
+    case METATILE_GeneralHub_Mountain_Conn_SouthEast_Inside:
+    case METATILE_GeneralHub_Mountain_Conn_SouthWest_Inside:
+
+    case METATILE_GeneralHub_MountainRaised_Conn_EastWest_North:
+    case METATILE_GeneralHub_MountainRaised_Conn_EastWest_South:
+    case METATILE_GeneralHub_MountainRaised_Conn_NorthEast:
+    case METATILE_GeneralHub_MountainRaised_Conn_NorthSouth_East:
+    case METATILE_GeneralHub_MountainRaised_Conn_NorthSouth_West:
+    case METATILE_GeneralHub_MountainRaised_Conn_NorthWest:
+    case METATILE_GeneralHub_MountainRaised_Conn_SouthEast:
+    case METATILE_GeneralHub_MountainRaised_Conn_SouthWest:
+
+    case METATILE_AdventurePaths_Mountain_Conn_EastWest_South_Grass:
+    case METATILE_AdventurePaths_MountainRaised_Conn_EastWest_South_Grass:
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool8 IsInsideMountainTileInDir(u16 x, u16 y, u8 dir)
+{
+    switch (dir)
+    {
+    case DIR_NORTH:
+        return IsInsideMountainTile(x, y - 1);
+    case DIR_EAST:
+        return IsInsideMountainTile(x + 1, y);
+    case DIR_SOUTH:
+        return IsInsideMountainTile(x, y + 1);
+    case DIR_WEST:
+        return IsInsideMountainTile(x - 1, y);
+    }
+    return FALSE;
+}
+
+static void WalkCoordsInDir(u16* x, u16* y, u8 dir)
+{
+    switch (dir)
+    {
+    case DIR_NORTH:
+        *y -= 1;
+        break;
+    case DIR_EAST:
+        *x += 1;
+        break;
+    case DIR_SOUTH:
+        *y += 1;
+        break;
+    case DIR_WEST:
+        *x -= 1;
+        break;
+    }
+}
+
+#define DIR_CHANGE(from, to) (oldWalkDir == from && currWalkDir == to)
+
+static u32 GetMountainMetatileInternal(u8 oldWalkDir, u8 currWalkDir, u8 lookDir)
+{
+    if(oldWalkDir == currWalkDir)
+    {
+        switch (currWalkDir)
+        {
+        case DIR_NORTH:
+        case DIR_SOUTH:
+            return (lookDir == DIR_EAST) ? METATILE_GeneralHub_Mountain_Conn_NorthSouth_East : METATILE_GeneralHub_Mountain_Conn_NorthSouth_West;
+        case DIR_EAST:
+        case DIR_WEST:
+            return (lookDir == DIR_NORTH) ? METATILE_GeneralHub_Mountain_Conn_EastWest_North : METATILE_AdventurePaths_Mountain_Conn_EastWest_South_Grass;
+        }
+    }
+    else
+    {
+        if(DIR_CHANGE(DIR_NORTH, DIR_EAST))
+            return METATILE_GeneralHub_Mountain_Conn_SouthEast;
+
+        if(DIR_CHANGE(DIR_EAST, DIR_SOUTH))
+            return METATILE_GeneralHub_Mountain_Conn_SouthWest;
+
+        if(DIR_CHANGE(DIR_SOUTH, DIR_WEST))
+            return METATILE_GeneralHub_Mountain_Conn_NorthWest;
+
+        if(DIR_CHANGE(DIR_WEST, DIR_NORTH))
+            return METATILE_GeneralHub_Mountain_Conn_NorthEast;
+
+
+        if(DIR_CHANGE(DIR_SOUTH, DIR_EAST))
+            return METATILE_AdventurePaths_MountainRaised_Conn_EastWest_South_Grass;
+
+        if(DIR_CHANGE(DIR_EAST, DIR_NORTH))
+            return METATILE_AdventurePaths_MountainRaised_Conn_EastWest_South_Grass;
+            
+        if(DIR_CHANGE(DIR_WEST, DIR_SOUTH))
+            return METATILE_GeneralHub_Mountain_Conn_SouthEast_Inside;
+            
+        if(DIR_CHANGE(DIR_NORTH, DIR_WEST))
+            return METATILE_GeneralHub_Mountain_Conn_SouthWest_Inside;
+    }
+
+    return METATILE_GeneralHub_Mountain_Centre;
+}
+
+static u32 GetMountainMetatile(u8 oldWalkDir, u8 currWalkDir, u8 lookDir, u32 layerIndex, u32 layerCount)
+{
+    u32 metatile = GetMountainMetatileInternal(oldWalkDir, currWalkDir, lookDir);
+    u32 topLayerIndex = 0;
+    u32 bottomLayerIndex = layerCount - 1;
+
+    if(layerCount > 1)
+    {
+        if(metatile == METATILE_AdventurePaths_MountainRaised_Conn_EastWest_South_Grass || metatile == METATILE_AdventurePaths_Mountain_Conn_EastWest_South_Grass)
+        {
+            if(layerIndex == topLayerIndex)
+                return METATILE_AdventurePaths_MountainRaised_Conn_EastWest_South_Grass;
+            else if(layerIndex == bottomLayerIndex)
+                return layerIndex == METATILE_AdventurePaths_Mountain_Conn_EastWest_South_Grass ? METATILE_GeneralHub_Mountain_Conn_EastWest_South : METATILE_GeneralHub_MountainRaised_Conn_EastWest_South;
+            else
+                return METATILE_GeneralHub_MountainRaised_Conn_EastWest_South;
+        }
+
+        if(layerIndex != bottomLayerIndex)
+        {
+            switch (metatile)
+            {
+            case METATILE_GeneralHub_Mountain_Conn_SouthEast_Inside:
+            case METATILE_GeneralHub_Mountain_Conn_SouthWest_Inside:
+                break; // do nothing
+            
+            default: // default spacing is 3 apart between grass and mountain bottoms
+                return metatile + 3;
+            }
+        }
+    }
+
+    return metatile;
+}
+
+#undef DIR_CHANGE
+
 void RogueAdv_ApplyAdventureMetatiles()
 {
     struct Coords16 treesCoords[24];
     u32 metatile;
     u16 x, y;
     u16 treeCount;
-    u8 i, j;
+    u32 i, j;
     bool8 isValid;
 
     // Detect trees, as we will likely need to remove them later
@@ -1311,23 +1636,23 @@ void RogueAdv_ApplyAdventureMetatiles()
         if(ShouldBlockObjectEvent(&gRogueAdvPath.rooms[i]))
         {
             // Place rock to block way back
-            MapGridSetMetatileIdAt(x + 2, y, METATILE_General_SandPit_Stone | MAPGRID_COLLISION_MASK);
+            MapGridSetMetatileIdAt(x + 2, y, METATILE_GeneralHub_SandPath_Stone | MAPGRID_COLLISION_MASK);
         }
         else
         {
-            MapGridSetMetatileIdAt(x + 2, y, METATILE_General_SandPit_Center);
+            MapGridSetMetatileIdAt(x + 2, y, METATILE_GeneralHub_SandPath_Centre);
         }
 
         // Place connecting tiles infront
         //
         // ROOM_CONNECTION_MASK_MID (Always needed)
-        MapGridSetMetatileIdAt(x + 1, y + 0, METATILE_General_SandPit_Center);
+        MapGridSetMetatileIdAt(x + 1, y + 0, METATILE_GeneralHub_SandPath_Centre);
         
         if((gRogueAdvPath.rooms[i].connectionMask & ROOM_CONNECTION_MASK_TOP) != 0)
-            MapGridSetMetatileIdAt(x + 1, y + 1, METATILE_General_SandPit_Center);
+            MapGridSetMetatileIdAt(x + 1, y + 1, METATILE_GeneralHub_SandPath_Centre);
 
         if((gRogueAdvPath.rooms[i].connectionMask & ROOM_CONNECTION_MASK_BOT) != 0)
-            MapGridSetMetatileIdAt(x + 1, y - 1, METATILE_General_SandPit_Center);
+            MapGridSetMetatileIdAt(x + 1, y - 1, METATILE_GeneralHub_SandPath_Centre);
 
         // Place connecting tiles behind (Unless we're the final node)
         //
@@ -1337,9 +1662,9 @@ void RogueAdv_ApplyAdventureMetatiles()
             {
                 if(j == 1 && IsObjectEventVisible(&gRogueAdvPath.rooms[i]))
                     // Place stone to block interacting from the back
-                    MapGridSetMetatileIdAt(x + 2 + j, y, METATILE_General_SandPit_Stone | MAPGRID_COLLISION_MASK);
+                    MapGridSetMetatileIdAt(x + 2 + j, y, METATILE_GeneralHub_SandPath_Stone | MAPGRID_COLLISION_MASK);
                 else
-                    MapGridSetMetatileIdAt(x + 2 + j, y, METATILE_General_SandPit_Center);
+                    MapGridSetMetatileIdAt(x + 2 + j, y, METATILE_GeneralHub_SandPath_Centre);
             }
         }
     }
@@ -1369,7 +1694,88 @@ void RogueAdv_ApplyAdventureMetatiles()
 
         for(i = minY; i <= maxY; ++i)
         {
-            MapGridSetMetatileIdAt(x + 1, i, METATILE_General_SandPit_Center);
+            MapGridSetMetatileIdAt(x + 1, i, METATILE_GeneralHub_SandPath_Centre);
+        }
+    }
+
+    // Apply mountain outline
+    {
+        u32 layerIndex;
+        u32 layerCount = 0;
+
+        if(GetPathGenerationDifficulty() == ROGUE_FINAL_CHAMP_DIFFICULTY)
+            layerCount = 8;
+        else if(GetPathGenerationDifficulty() == ROGUE_CHAMP_START_DIFFICULTY)
+            layerCount = 3;
+        else if(GetPathGenerationDifficulty() >= ROGUE_ELITE_START_DIFFICULTY)
+            layerCount = 1;
+
+        for(layerIndex = 0; layerIndex < layerCount; ++layerIndex)
+        {
+            bool8 foundStart;
+            u8 walkDir;
+            u8 prevWalkDir;
+            u8 lookDir;
+            u16 startX, startY;
+
+            // Find starting edge
+            foundStart = FALSE;
+            startX = 0;
+            startY = 0;
+
+            for(y = 0; y < gMapHeader.mapLayout->height && !foundStart; ++y)
+            {
+                for(x = 0; x < gMapHeader.mapLayout->width && !foundStart; ++x)
+                {
+                    if(IsInsideMountainTile(x, y))
+                    {
+                        foundStart = TRUE;
+                        break;
+                    }
+
+                    startX = x;
+                    startY = y;
+                }
+            }
+
+            walkDir = DIR_NORTH;
+            lookDir = DIR_EAST;
+            x = startX;
+            y = startY;
+
+            // Only for loop in case we somehow get stuck
+            for(i = 0; i < 1024; ++i)
+            {            
+                bool8 walkingInside = IsInsideMountainTileInDir(x, y, walkDir);
+                bool8 lookingInside = IsInsideMountainTileInDir(x, y, lookDir);
+
+                prevWalkDir = walkDir;
+
+                if(walkingInside)
+                {
+                    u8 oldLookDir = lookDir;
+                    lookDir = walkDir;
+                    walkDir = GetOppositeDirection(oldLookDir);
+                }
+                else if(!lookingInside)
+                {
+                    u8 oldWalkDir = walkDir;
+                    walkDir = lookDir;
+                    lookDir = GetOppositeDirection(oldWalkDir);
+                }
+
+                // Don't place initial tile so we finish on that tile
+                if(i != 0)
+                    MapGridSetMetatileIdAt(x + MAP_OFFSET, y + MAP_OFFSET, GetMountainMetatile(prevWalkDir, walkDir, lookDir, layerIndex, layerCount) | MAPGRID_COLLISION_MASK);
+
+                WalkCoordsInDir(&x, &y, walkDir);
+
+                if(x == startX && y == startY)
+                {
+                    MapGridSetMetatileIdAt(x + MAP_OFFSET, y + MAP_OFFSET, GetMountainMetatile(walkDir, walkDir, lookDir, layerIndex, layerCount) | MAPGRID_COLLISION_MASK);
+                    break;
+                }
+            }
         }
     }
 
@@ -1401,6 +1807,70 @@ void RogueAdv_ApplyAdventureMetatiles()
                     MapGridSetMetatileIdAt(x + sTreeDecorationMetatiles[i].x, y + sTreeDecorationMetatiles[i].y, METATILE_General_Grass | MAPGRID_COLLISION_MASK);
                 }
             }
+        }
+    }
+
+    // Pretty up the paths
+    for(y = 0; y < gMapHeader.mapLayout->height; ++y)
+    for(x = 0; x < gMapHeader.mapLayout->width; ++x)
+    {
+        metatile = MapGridGetMetatileIdAt(x + MAP_OFFSET, y + MAP_OFFSET);
+
+        if(metatile == METATILE_GeneralHub_SandPath_Centre)
+        {
+            bool32 left = IsPathMetatile(MapGridGetMetatileIdAt(x + MAP_OFFSET - 1, y + MAP_OFFSET + 0));
+            bool32 right = IsPathMetatile(MapGridGetMetatileIdAt(x + MAP_OFFSET + 1, y + MAP_OFFSET + 0));
+            bool32 up = IsPathMetatile(MapGridGetMetatileIdAt(x + MAP_OFFSET + 0, y + MAP_OFFSET - 1));
+            bool32 down = IsPathMetatile(MapGridGetMetatileIdAt(x + MAP_OFFSET + 0, y + MAP_OFFSET + 1));
+
+            // -
+            if(left && right && !up && !down)
+                metatile = METATILE_AdventurePaths_SandPath_Horizontal;
+            // |
+            else if(!left && !right && up && down)
+                metatile = METATILE_AdventurePaths_SandPath_Vertical;
+
+            // |-
+            else if(!left && right && !up && down)
+                metatile = METATILE_GeneralHub_SandPath_Conn_SouthEast;
+            // -|
+            else if(left && !right && !up && down)
+                metatile = METATILE_GeneralHub_SandPath_Conn_SouthWest;
+            // _|
+            else if(left && !right && up && !down)
+                metatile = METATILE_GeneralHub_SandPath_Conn_NorthWest;
+            // |_
+            else if(!left && right && up && !down)
+                metatile = METATILE_GeneralHub_SandPath_Conn_NorthEast;
+
+            // _|_
+            else if(left && right && up && !down)
+                metatile = METATILE_GeneralHub_SandPath_Conn_EastWest_North;
+            // -|-
+            else if(left && right && !up && down)
+                metatile = METATILE_GeneralHub_SandPath_Conn_EastWest_South;
+            // -+
+            else if(left && !right && up && down)
+                metatile = METATILE_GeneralHub_SandPath_Conn_NorthSouth_West;
+            // +-
+            else if(!left && right && up && down)
+                metatile = METATILE_GeneralHub_SandPath_Conn_NorthSouth_East;
+
+            // --x
+            else if(left && !right && !up && !down)
+                metatile = METATILE_AdventurePaths_SandPath_Horizontal_EndEast;
+            // x--
+            else if(!left && right && !up && !down)
+                metatile = METATILE_AdventurePaths_SandPath_Horizontal_EndWest;
+
+
+            if(metatile != METATILE_GeneralHub_SandPath_Centre)
+                MapGridSetMetatileIdAt(x + MAP_OFFSET, y + MAP_OFFSET, metatile);
+
+        }
+        else if(metatile == METATILE_GeneralHub_SandPath_Stone)
+        {
+            MapGridSetMetatileIdAt(x + MAP_OFFSET, y + MAP_OFFSET, METATILE_AdventurePaths_SandPath_Horizontal_Blocked | MAPGRID_COLLISION_MASK);
         }
     }
 }
@@ -1510,6 +1980,11 @@ static void ApplyCurrentNodeWarp(struct WarpData *warp)
             warp->mapGroup = MAP_GROUP(ROGUE_ENCOUNTER_BATTLE_SIM);
             warp->mapNum = MAP_NUM(ROGUE_ENCOUNTER_BATTLE_SIM);
             break;
+
+        case ADVPATH_ROOM_BATTLE_TOWER:
+            warp->mapGroup = MAP_GROUP(ROGUE_ENCOUNTER_BATTLE_TOWER);
+            warp->mapNum = MAP_NUM(ROGUE_ENCOUNTER_BATTLE_TOWER);
+            break;
     }
 }
 
@@ -1518,7 +1993,11 @@ u8 RogueAdv_OverrideNextWarp(struct WarpData *warp)
     // Should already be set correctly for RogueAdv_WarpLastInteractedRoom
     if(!gRogueAdvPath.isOverviewActive)
     {
-        bool8 freshPath = RogueAdv_GenerateAdventurePathsIfRequired();
+        bool8 freshPath;
+
+        START_TIMER(ROGUE_ADVPATH_GENERATE);
+        freshPath = RogueAdv_GenerateAdventurePathsIfRequired();
+        STOP_TIMER(ROGUE_ADVPATH_GENERATE);
 
         // Always jump back to overview screen, after a different route
         warp->mapGroup = MAP_GROUP(ROGUE_ADVENTURE_PATHS);
@@ -1724,6 +2203,15 @@ static u16 SelectObjectGfxForRoom(struct RogueAdvPathRoom* room)
             case TEAM_NUM_GALACTIC:
                 return gender ? OBJ_EVENT_GFX_TEAM_GALACTIC_GRUNT_M : OBJ_EVENT_GFX_TEAM_GALACTIC_GRUNT_F;
 
+            case TEAM_NUM_PLASMA:
+                return gender ? OBJ_EVENT_GFX_TEAM_PLASMA_GRUNT_M : OBJ_EVENT_GFX_TEAM_PLASMA_GRUNT_F;
+
+            case TEAM_NUM_NEOPLASMA:
+                return gender ? OBJ_EVENT_GFX_TEAM_NEO_PLASMA_GRUNT_M : OBJ_EVENT_GFX_TEAM_NEO_PLASMA_GRUNT_F;
+
+            case TEAM_NUM_FLARE:
+                return gender ? OBJ_EVENT_GFX_TEAM_FLARE_GRUNT_M : OBJ_EVENT_GFX_TEAM_FLARE_GRUNT_F;
+
             default:
                 AGB_ASSERT(FALSE);
                 return OBJ_EVENT_GFX_ROCKET_M;
@@ -1762,6 +2250,9 @@ static u16 SelectObjectGfxForRoom(struct RogueAdvPathRoom* room)
 
         case ADVPATH_ROOM_BOSS:
             return OBJ_EVENT_GFX_BATTLE_STATUE;
+
+        case ADVPATH_ROOM_BATTLE_TOWER:
+            return OBJ_EVENT_GFX_MISC_YOUNG_COUPLE_F;
     }
 
     return 0;

@@ -173,6 +173,19 @@ enum {
 #define TEACH_STATE_EGG_MOVES     1
 #define TEACH_STATE_TUTOR_MOVES   2
 
+
+enum
+{
+    CUSTOM_TEXT_COLOR_RED = 0,
+    CUSTOM_TEXT_COLOR_BLUE,
+};
+
+static const u8 sTextColors[][3] =
+{
+    [CUSTOM_TEXT_COLOR_RED] = {0, 4, 5},
+    [CUSTOM_TEXT_COLOR_BLUE] = {0, 8, 9}
+};
+
 static EWRAM_DATA struct
 {
     u8 state;
@@ -184,7 +197,6 @@ static EWRAM_DATA struct
     u8 moveSlot;
     struct ListMenuItem menuItems[MAX_RELEARNER_MOVES];  
     u8 numMenuChoices;
-    u8 numMenuHiddenChoices;
     u8 numToShowAtOnce;
     u8 moveListMenuTask;
     u8 moveListScrollArrowTask;
@@ -418,6 +430,11 @@ static const struct ListMenuTemplate sMoveRelearnerMovesListTemplate =
     .cursorKind = 0
 };
 
+static void PrintCustomColoredText(u8 windowId, u8 fontId, const u8 *str, u8 x, u8 y, u8 speed, u8 color)
+{
+    AddTextPrinterParameterized4(windowId, fontId, x, y, gFonts[fontId].letterSpacing, gFonts[fontId].lineSpacing, sTextColors[color], speed, str);
+}
+
 static void VBlankCB_MoveRelearner(void)
 {
     LoadOam();
@@ -496,7 +513,7 @@ static void GatherLearnableMoves(struct Pokemon* mon)
         }
     }
 
-    Rogue_ModifyTutorMoves(mon, sMoveRelearnerMenuSate.teachMoveState, &sMoveRelearnerStruct->numMenuChoices, &sMoveRelearnerStruct->numMenuHiddenChoices, sMoveRelearnerStruct->movesToLearn);
+    Rogue_ModifyTutorMoves(mon, sMoveRelearnerMenuSate.teachMoveState, &sMoveRelearnerStruct->numMenuChoices, sMoveRelearnerStruct->movesToLearn);
 }
 
 u8 GetNumberOfRelearnableMovesForContext(struct Pokemon* mon)
@@ -528,7 +545,7 @@ static u8 GetMoveStatsYOffset(u8 yEnabledOffset)
 
 static bool8 HasEnoughMoneyToTeach(u16 chosenMove)
 {
-    u32 cost = Rogue_CalculateMovePrice(chosenMove);
+    u32 cost = Rogue_CalculateMovePrice(chosenMove, ITEM_NONE);
     u32 playerMoney = GetMoney(&gSaveBlock1Ptr->money);
     return playerMoney >= cost;
 }
@@ -984,7 +1001,7 @@ static void DoMoveRelearnerMain(void)
         {
             if(DoesTeachingCostMoney())
             {
-                u32 cost = Rogue_CalculateMovePrice(GetCurrentSelectedMove());
+                u32 cost = Rogue_CalculateMovePrice(GetCurrentSelectedMove(), ITEM_NONE);
                 RemoveMoney(&gSaveBlock1Ptr->money, cost);
                 PlaySE(SE_VEND);
             }
@@ -1093,7 +1110,11 @@ static void HandleInput(bool8 showContest)
         break;
 
     default:
-        if(DoesTeachingCostMoney() && !HasEnoughMoneyToTeach(itemId))
+        if(itemId == MOVE_UNAVAILABLE)
+        {
+            PlaySE(SE_FAILURE);
+        }
+        else if(DoesTeachingCostMoney() && !HasEnoughMoneyToTeach(itemId))
         {
             PlaySE(SE_FAILURE);
             StringCopy(gStringVar4, gText_MoveRelearnerNotEnoughMoney);
@@ -1222,47 +1243,19 @@ static void CreateLearnableMovesList(void)
 
     for (i = 0; i < sMoveRelearnerStruct->numMenuChoices; i++)
     {
-        sMoveRelearnerStruct->menuItems[i].name = gMoveNames[sMoveRelearnerStruct->movesToLearn[i]];
+        if(sMoveRelearnerStruct->movesToLearn[i] == MOVE_UNAVAILABLE)
+        {
+            sMoveRelearnerStruct->menuItems[i].name = gText_ThreeQuestionMarks;
+        }
+        else
+        {
+            sMoveRelearnerStruct->menuItems[i].name = gMoveNames[sMoveRelearnerStruct->movesToLearn[i]];
+        }
+
         sMoveRelearnerStruct->menuItems[i].id = sMoveRelearnerStruct->movesToLearn[i];
     }
 
     BufferMonNickname(gStringVar1);
-
-    if(sMoveRelearnerStruct->numMenuHiddenChoices != 0)
-    {
-        // STR_VARs are used heavily here so it's easiest to just hard code these
-        u8 index;
-        const u8* const hiddenMoveTexts[] = 
-        {
-            gText_HiddenMoves1,
-            gText_HiddenMoves2,
-            gText_HiddenMoves3,
-            gText_HiddenMoves4,
-            gText_HiddenMoves5,
-            gText_HiddenMoves6,
-            gText_HiddenMoves7,
-            gText_HiddenMoves8,
-            gText_HiddenMoves9,
-            gText_HiddenMoves10,
-            gText_HiddenMoves11,
-            gText_HiddenMoves12,
-            gText_HiddenMoves13,
-            gText_HiddenMoves14,
-            gText_HiddenMoves15,
-            gText_HiddenMoves16,
-            gText_HiddenMoves17,
-            gText_HiddenMoves18,
-            gText_HiddenMoves19,
-            gText_HiddenMoves20,
-            gText_HiddenMoves20plus,
-        };
-
-        index = min(sMoveRelearnerStruct->numMenuHiddenChoices - 1, ARRAY_COUNT(hiddenMoveTexts) - 1);
-
-        sMoveRelearnerStruct->menuItems[sMoveRelearnerStruct->numMenuChoices].name = hiddenMoveTexts[index];
-        sMoveRelearnerStruct->menuItems[sMoveRelearnerStruct->numMenuChoices].id = LIST_CANCEL;
-        sMoveRelearnerStruct->numMenuChoices++;
-    }
 
     sMoveRelearnerStruct->menuItems[sMoveRelearnerStruct->numMenuChoices].name = gText_Cancel;
     sMoveRelearnerStruct->menuItems[sMoveRelearnerStruct->numMenuChoices].id = LIST_CANCEL;
@@ -1292,6 +1285,16 @@ static void MoveRelearnerCursorCallback(s32 itemIndex, bool8 onInit, struct List
     MoveRelearnerMenuLoadContestMoveDescription(itemIndex);
 }
 
+static const u8 sUnavaliableDescription_Run[] = _(
+    "Earn Badges with this {PKMN} in\n"
+    "your Party, to unlock\n"
+    "additional moves.");
+
+static const u8 sUnavaliableDescription_Hub[] = _(
+    "Complete Adventures,\n"
+    "starting with this {PKMN},\n"
+    "to unlock additional moves.");
+
 static void MoveRelearnerLoadBattleMoveDescription(u32 chosenMove)
 {
     s32 x;
@@ -1316,6 +1319,13 @@ static void MoveRelearnerLoadBattleMoveDescription(u32 chosenMove)
         return;
     }
 
+    if(chosenMove == MOVE_UNAVAILABLE)
+    {
+        str = Rogue_IsRunActive() ? sUnavaliableDescription_Run : sUnavaliableDescription_Hub;
+        AddTextPrinterParameterized(0, FONT_NARROW, str, 0, 24, 0, NULL);
+        return;
+    }
+
     // Type
     move = &gBattleMoves[chosenMove];
     //str = gTypeNames[move->type];
@@ -1327,7 +1337,15 @@ static void MoveRelearnerLoadBattleMoveDescription(u32 chosenMove)
 
     x += GetStringWidth(FONT_NORMAL, gText_MoveRelearnerPP, 0);
     ConvertIntToDecimalStringN(buffer, move->pp, STR_CONV_MODE_LEFT_ALIGN, 2);
-    AddTextPrinterParameterized(0, FONT_NORMAL, buffer, x, yStatHeight, TEXT_SKIP_DRAW, NULL);
+
+    if(Rogue_HasMoveBeenRevised(chosenMove) && gBattleMoves_Mainline[chosenMove].pp != gBattleMoves_Revised[chosenMove].pp)
+    {
+        PrintCustomColoredText(0, FONT_NORMAL, buffer, x, yStatHeight, TEXT_SKIP_DRAW, CUSTOM_TEXT_COLOR_BLUE);
+    }
+    else
+    {
+        AddTextPrinterParameterized(0, FONT_NORMAL, buffer, x, yStatHeight, TEXT_SKIP_DRAW, NULL);
+    }
 
     // Power
     x = 40;
@@ -1343,7 +1361,15 @@ static void MoveRelearnerLoadBattleMoveDescription(u32 chosenMove)
         str = buffer;
     }
     x += GetStringWidth(FONT_NORMAL, gText_MoveRelearnerPower, 0);
-    AddTextPrinterParameterized(0, FONT_NORMAL, str, x, yStatHeight, TEXT_SKIP_DRAW, NULL);
+    
+    if(Rogue_HasMoveBeenRevised(chosenMove) && gBattleMoves_Mainline[chosenMove].power != gBattleMoves_Revised[chosenMove].power)
+    {
+        PrintCustomColoredText(0, FONT_NORMAL, str, x, yStatHeight, TEXT_SKIP_DRAW, CUSTOM_TEXT_COLOR_BLUE);
+    }
+    else
+    {
+        AddTextPrinterParameterized(0, FONT_NORMAL, str, x, yStatHeight, TEXT_SKIP_DRAW, NULL);
+    }
 
     // Accuracy
     x = 85;
@@ -1359,12 +1385,20 @@ static void MoveRelearnerLoadBattleMoveDescription(u32 chosenMove)
         str = buffer;
     }
     x += GetStringWidth(FONT_NORMAL, gText_MoveRelearnerAccuracy, 0);
-    AddTextPrinterParameterized(0, FONT_NORMAL, str, x, yStatHeight, TEXT_SKIP_DRAW, NULL);
+
+    if(Rogue_HasMoveBeenRevised(chosenMove) && gBattleMoves_Mainline[chosenMove].accuracy != gBattleMoves_Revised[chosenMove].accuracy)
+    {
+        PrintCustomColoredText(0, FONT_NORMAL, str, x, yStatHeight, TEXT_SKIP_DRAW, CUSTOM_TEXT_COLOR_BLUE);
+    }
+    else
+    {
+        AddTextPrinterParameterized(0, FONT_NORMAL, str, x, yStatHeight, TEXT_SKIP_DRAW, NULL);
+    }
 
     // Price
     if(DoesTeachingCostMoney())
     {
-        u32 cost = Rogue_CalculateMovePrice(chosenMove);
+        u32 cost = Rogue_CalculateMovePrice(chosenMove, ITEM_NONE);
         u32 playerMoney = GetMoney(&gSaveBlock1Ptr->money);
 
         ConvertIntToDecimalStringN(gStringVar1, cost, STR_CONV_MODE_LEFT_ALIGN, 6);
@@ -1376,8 +1410,20 @@ static void MoveRelearnerLoadBattleMoveDescription(u32 chosenMove)
 
 
     // Description
-    str = gMoveDescriptionPointers[chosenMove - 1];
-    AddTextPrinterParameterized(0, FONT_NARROW, str, 0, yDescHeight, 0, NULL);
+    {
+        u8 const* overrideDesc = Rogue_TryOverrideMoveDescription(chosenMove);   
+
+        if(overrideDesc != NULL)
+        {
+            str = overrideDesc;
+            PrintCustomColoredText(0, FONT_NARROW, str, 0, yDescHeight, 0, CUSTOM_TEXT_COLOR_BLUE);
+        }
+        else
+        {
+            str = gMoveDescriptionPointers[chosenMove - 1];
+            AddTextPrinterParameterized(0, FONT_NARROW, str, 0, yDescHeight, 0, NULL);
+        }
+    }
 }
 
 static void MoveRelearnerMenuLoadContestMoveDescription(u32 chosenMove)
@@ -1443,7 +1489,7 @@ void MoveRelearnerShowHideHearts(s32 moveId)
     }
 #endif
 
-    if(moveId != LIST_CANCEL)
+    if(moveId != LIST_CANCEL && moveId != MOVE_UNAVAILABLE)
     {
         u8 type = gBattleMoves[moveId].type;
 

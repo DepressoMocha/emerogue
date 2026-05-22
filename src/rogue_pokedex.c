@@ -1,4 +1,6 @@
 #include "global.h"
+#include "battle.h"
+#include "battle_controllers.h"
 #include "battle_main.h"
 #include "palette.h"
 #include "main.h"
@@ -17,6 +19,7 @@
 #include "string_util.h"
 #include "text.h"
 #include "item.h"
+#include "item_menu.h"
 #include "overworld.h"
 #include "menu.h"
 #include "sound.h"
@@ -236,6 +239,7 @@ static void Task_SwapToPage(u8);
 static void Task_PageFadeIn(u8);
 static void Task_PageWaitForKeyPress(u8);
 static void Task_PageFadeOutAndExit(u8);
+static void Task_PageFadeOutExitAndRelaunch(u8);
 static void DisplayTitleScreenCountersText(void);
 static void DisplayTitleDexVariantText(void);
 static void DisplayMonEntryText(void);
@@ -335,7 +339,8 @@ enum
 
 struct PokedexViewRequest
 {
-    u8 view;
+    u8 view : 7;
+    u8 inBattleScreen : 1;
     u16 dexVariantToRestore;
     union
     {
@@ -391,10 +396,66 @@ static const u32 sPageFormsTilemap[] = INCBIN_U32("graphics/rogue_pokedex/page_f
 // above share the same tilemap
 static const u32 sPageTiles[] = INCBIN_U32("graphics/rogue_pokedex/page_tiles.4bpp.lz");
 
+static u16 GetSpeciesAtSlot(u8 slot)
+{
+    if(sPokedexViewReq.inBattleScreen)
+    {
+#ifdef ROGUE_EXPANSION
+        if(GetBattlerSide(slot) != B_SIDE_PLAYER)
+        {
+            u16 species = GetIllusionMonSpecies(slot);
+
+            if(species != SPECIES_NONE)
+                return species;
+        }
+#endif
+
+        return gBattleMons[slot].species;
+    }
+    else
+    {
+        return GetMonData(&gPlayerParty[slot], MON_DATA_SPECIES);
+    }
+}
+
+static u32 GetOtIdAtSlot(u8 slot)
+{
+    if(sPokedexViewReq.inBattleScreen)
+    {
+#ifdef ROGUE_EXPANSION
+        if(GetBattlerSide(slot) != B_SIDE_PLAYER)
+        {
+            u16 species = GetIllusionMonSpecies(slot);
+
+            if(species != SPECIES_NONE)
+                return 0;
+        }
+#endif
+
+        return gBattleMons[slot].otId;
+    }
+    else
+    {
+        return GetMonData(&gPlayerParty[slot], MON_DATA_OT_ID);
+    }
+}
+
+static u32 GetHpAtSlot(u8 slot)
+{
+    if(sPokedexViewReq.inBattleScreen)
+    {
+        return gBattleMons[slot].hp;
+    }
+    else
+    {
+        return GetMonData(&gPlayerParty[slot], MON_DATA_MAX_HP);
+    }
+}
+
 static void SetupPokedexViewDefault()
 {
-    gMain.savedCallback = CB2_ReturnToFieldContinueScript;
     sPokedexViewReq.view = DEX_VIEW_STANDARD;
+    sPokedexViewReq.inBattleScreen = FALSE;
     sPokedexViewReq.dexVariantToRestore = POKEDEX_INVALID_VARIANT;
     SetMainCallback2(CB2_Rogue_ShowPokedex);
 }
@@ -408,16 +469,32 @@ void Rogue_ShowPokedexFromMenu(void)
 void Rogue_ShowPokedexFromScript(void)
 {
     SetupPokedexViewDefault();
+    gMain.savedCallback = CB2_ReturnToFieldContinueScript;
+}
+
+void Rogue_ShowPokedexFromBattle(void)
+{
+    SetupPokedexViewDefault();
+    // don't edit savedCallback
+    // gMain.savedCallback = CB2_SetUpReshowBattleScreenAfterMenu2;
+
+    // ReturnToPartyMenuSubMenu called below
+    sPokedexViewReq.view = DEX_VIEW_SPECIFIC_MON;
+    sPokedexViewReq.inBattleScreen = TRUE;
+    sPokedexViewReq.perView.specificMon.species = GetSpeciesAtSlot(gMultiUsePlayerCursor);
+    sPokedexViewReq.perView.specificMon.OtId = GetOtIdAtSlot(gMultiUsePlayerCursor);
+    sPokedexViewReq.perView.specificMon.partySlot = gMultiUsePlayerCursor;
 }
 
 void Rogue_ShowPokedexForPartySlot(u8 slot)
 {
     SetupPokedexViewDefault();
+    gMain.savedCallback = CB2_ReturnToFieldContinueScript;
 
     // ReturnToPartyMenuSubMenu called below
     sPokedexViewReq.view = DEX_VIEW_SPECIFIC_MON;
-    sPokedexViewReq.perView.specificMon.species = GetMonData(&gPlayerParty[slot], MON_DATA_SPECIES);
-    sPokedexViewReq.perView.specificMon.OtId = GetMonData(&gPlayerParty[slot], MON_DATA_OT_ID);
+    sPokedexViewReq.perView.specificMon.species = GetSpeciesAtSlot(slot);
+    sPokedexViewReq.perView.specificMon.OtId = GetOtIdAtSlot(slot);
     sPokedexViewReq.perView.specificMon.partySlot = slot;
 }
 
@@ -429,6 +506,7 @@ void Rogue_SelectPokemonInPokedexFromDex(bool8 requireSeen, bool8 requireCaught)
 void Rogue_SelectPokemonInPokedexFromDexVariant(u8 variant, bool8 requireSeen, bool8 requireCaught)
 {
     SetupPokedexViewDefault();
+    gMain.savedCallback = CB2_ReturnToFieldContinueScript;
 
     sPokedexViewReq.view = DEX_VIEW_SELECT_MON;
     sPokedexViewReq.perView.selectMon.requireSeen = requireSeen;
@@ -446,6 +524,11 @@ void Rogue_SelectPokemonInSafari()
         Rogue_SelectPokemonInPokedexFromDexVariant(POKEDEX_DYNAMIC_VARIANT_NORMAL_SAFARI, FALSE, FALSE);
 
     sPokedexViewReq.view = DEX_VIEW_SELECT_SAFARI_MON;
+}
+
+bool8 Rogue_IsViewingPokedex()
+{
+    return sPokedexMenu != NULL;
 }
 
 static bool8 IsCurrentlySelectingMon()
@@ -893,6 +976,28 @@ static void Task_PageWaitForKeyPress(u8 taskId)
     }
 }
 
+static void Task_PageFadeOutExitAndRelaunch(u8 taskId)
+{
+    if (!gPaletteFade.active)
+    {
+        if(sPokedexViewReq.dexVariantToRestore != POKEDEX_INVALID_VARIANT)
+            RoguePokedex_SetDexVariant(sPokedexViewReq.dexVariantToRestore);
+
+        DestroyPageResources(sPokedexMenu->currentPage, PAGE_NONE);
+
+        Free(sPokedexMenu);
+        sPokedexMenu = NULL;
+
+        Free(sTilemapBufferPtr);
+        sTilemapBufferPtr = NULL;
+        DestroyTask(taskId);
+
+        FreeAllWindowBuffers();
+
+        SetupPokedexViewDefault();
+    }
+}
+
 static void Task_PageFadeOutAndExit(u8 taskId)
 {
     if (!gPaletteFade.active)
@@ -911,9 +1016,19 @@ static void Task_PageFadeOutAndExit(u8 taskId)
         FreeAllWindowBuffers();
         DestroyTask(taskId);
 
+        if(sPokedexViewReq.inBattleScreen)
+        {
+            // If this is set to a healing item, it thinks we're trying to heal a mon
+            // i.e. it hasn't been cleared since last heal was used
+            gSpecialVar_ItemId = ITEM_NONE;
+        }
+
         if(sPokedexViewReq.view == DEX_VIEW_SPECIFIC_MON)
         {
-            ReturnToPartyMenuSubMenu();
+            if(sPokedexViewReq.inBattleScreen)
+                SetMainCallback2(CB2_SetUpReshowBattleScreenAfterMenu2);
+            else
+                ReturnToPartyMenuSubMenu();
         }
         else
         {
@@ -979,7 +1094,6 @@ static bool8 IsDebugAltForm(u16 species)
     switch (species)
     {
     case SPECIES_PICHU_SPIKY_EARED:
-    case SPECIES_FLOETTE_ETERNAL_FLOWER:
     case SPECIES_MIMIKYU_BUSTED:
     case SPECIES_EISCUE_NOICE_FACE:
     case SPECIES_MORPEKO_HANGRY:
@@ -1351,6 +1465,7 @@ static u16 GetMaxMoveScrollOffset()
     u16 count = 0;
     u16 species = sPokedexMenu->viewBaseSpecies;
     u32 customMonId = RogueGift_GetCustomMonIdBySpecies(species, sPokedexMenu->viewOtId);
+    struct RoguePokemonProfile const* pokemonProfile = Rogue_GetPokemonProfile(species);
     
     // Custom moves
     if(customMonId)
@@ -1361,7 +1476,7 @@ static u16 GetMaxMoveScrollOffset()
     // Level up
     for (i = 0; TRUE; i++)
     {
-        if (gRoguePokemonProfiles[species].levelUpMoves[i].move == MOVE_NONE)
+        if (pokemonProfile->levelUpMoves[i].move == MOVE_NONE)
             break;
         ++count;
     }
@@ -1369,7 +1484,7 @@ static u16 GetMaxMoveScrollOffset()
     // Tutor/TM moves
     for (i = 0; TRUE; i++)
     {
-        if (gRoguePokemonProfiles[species].tutorMoves[i] == MOVE_NONE)
+        if (pokemonProfile->tutorMoves[i] == MOVE_NONE)
             break;
         ++count;
     }
@@ -1385,6 +1500,7 @@ static void DisplayMonMovesText()
     const u8 ySpacing = 16;
     u8 color[3] = { TEXT_COLOR_TRANSPARENT, TEXT_COLOR_DARK_GRAY, TEXT_COLOR_LIGHT_GRAY };
     u16 species = sPokedexMenu->viewBaseSpecies;
+    struct RoguePokemonProfile const* pokemonProfile = Rogue_GetPokemonProfile(species);
 
     AddTitleText(sTitle_Moves);
 
@@ -1418,19 +1534,19 @@ static void DisplayMonMovesText()
     {
         for (i = 0; displayCount < MAX_LIST_DISPLAY_COUNT; i++)
         {
-            if (gRoguePokemonProfiles[species].levelUpMoves[i].move == MOVE_NONE)
+            if (pokemonProfile->levelUpMoves[i].move == MOVE_NONE)
                 break;
 
-            if(gRoguePokemonProfiles[species].levelUpMoves[i].level == 0)
+            if(pokemonProfile->levelUpMoves[i].level == 0)
             {
                 // Is evo move
-                StringCopy(gStringVar1, gMoveNames[gRoguePokemonProfiles[species].levelUpMoves[i].move]);
+                StringCopy(gStringVar1, gMoveNames[pokemonProfile->levelUpMoves[i].move]);
                 StringExpandPlaceholders(gStringVar3, gText_PokedexMovesEvo);
             }
             else
             { 
-                ConvertUIntToDecimalStringN(gStringVar1, gRoguePokemonProfiles[species].levelUpMoves[i].level, STR_CONV_MODE_RIGHT_ALIGN, 2);
-                StringCopy(gStringVar2, gMoveNames[gRoguePokemonProfiles[species].levelUpMoves[i].move]);
+                ConvertUIntToDecimalStringN(gStringVar1, pokemonProfile->levelUpMoves[i].level, STR_CONV_MODE_RIGHT_ALIGN, 2);
+                StringCopy(gStringVar2, gMoveNames[pokemonProfile->levelUpMoves[i].move]);
                 StringExpandPlaceholders(gStringVar3, gText_PokedexMovesLevel);
             }
             
@@ -1450,7 +1566,7 @@ static void DisplayMonMovesText()
 
         for(i = 0; displayCount < MAX_LIST_DISPLAY_COUNT; ++i)
         {
-            moveId = gRoguePokemonProfiles[species].tutorMoves[i];
+            moveId = pokemonProfile->tutorMoves[i];
 
             if(moveId == MOVE_NONE)
                 break;
@@ -1477,7 +1593,7 @@ static void DisplayMonMovesText()
 
         for(i = 0; displayCount < MAX_LIST_DISPLAY_COUNT; ++i)
         {
-            moveId = gRoguePokemonProfiles[species].tutorMoves[i];
+            moveId = pokemonProfile->tutorMoves[i];
 
             if(moveId == MOVE_NONE)
                 break;
@@ -1504,7 +1620,7 @@ static void DisplayMonMovesText()
 
         for(i = 0; displayCount < MAX_LIST_DISPLAY_COUNT; ++i)
         {
-            moveId = gRoguePokemonProfiles[species].tutorMoves[i];
+            moveId = pokemonProfile->tutorMoves[i];
 
             if(moveId == MOVE_NONE)
                 break;
@@ -1991,6 +2107,8 @@ static const struct BgTemplate sDiplomaBgTemplates[2] =
 
 static void InitOverviewBg(void)
 {
+    FreeAllWindowBuffers();
+
     ResetBgsAndClearDma3BusyFlags(0);
     InitBgsFromTemplates(0, sDiplomaBgTemplates, ARRAY_COUNT(sDiplomaBgTemplates));
     SetBgTilemapBuffer(1, sTilemapBufferPtr);
@@ -2972,9 +3090,9 @@ static void Overview_HandleInput(u8 taskId)
         }
         else
         {
-            sPokedexMenu->desiredPage = PAGE_TITLE_SCREEN;
-            gTasks[taskId].func = Task_SwapToPage;
-
+            BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+            gTasks[taskId].func = Task_PageFadeOutExitAndRelaunch;
+            
             PlaySE(SE_SELECT);
         }
     }
@@ -3204,7 +3322,7 @@ static void MonInfo_CreateSprites(bool8 includeType)
 
     sPokedexMenu->pageSprites[MON_SPRITE_FRONT_PIC] = CreateMonPicSprite_Affine(
         sPokedexMenu->viewBaseSpecies,
-        NON_SHINY_PLACEHOLDER,
+        sPokedexMenu->viewOtId,
         GetPokedexMonPersonality(sPokedexMenu->viewBaseSpecies),
 #ifdef ROGUE_EXPANSION
         GetGenderForSpecies(sPokedexMenu->viewBaseSpecies, 0),
@@ -3224,10 +3342,10 @@ static void MonInfo_CreateSprites(bool8 includeType)
 
     if(includeType)
     {
-        sPokedexMenu->pageSprites[MON_SPRITE_TYPE1] = CreateMonTypeIcon(RoguePokedex_GetSpeciesType(sPokedexMenu->viewBaseSpecies, 0), 138, 24);
+        sPokedexMenu->pageSprites[MON_SPRITE_TYPE1] = CreateMonTypeIcon(GetTypeBySpecies(sPokedexMenu->viewBaseSpecies, 0, sPokedexMenu->viewOtId), 138, 24);
 
-        if(RoguePokedex_GetSpeciesType(sPokedexMenu->viewBaseSpecies, 0) != RoguePokedex_GetSpeciesType(sPokedexMenu->viewBaseSpecies, 1))
-            sPokedexMenu->pageSprites[MON_SPRITE_TYPE2] = CreateMonTypeIcon(RoguePokedex_GetSpeciesType(sPokedexMenu->viewBaseSpecies, 1), 138 + 33, 24);
+        if(GetTypeBySpecies(sPokedexMenu->viewBaseSpecies, 0, sPokedexMenu->viewOtId) != GetTypeBySpecies(sPokedexMenu->viewBaseSpecies, 1, sPokedexMenu->viewOtId))
+            sPokedexMenu->pageSprites[MON_SPRITE_TYPE2] = CreateMonTypeIcon(GetTypeBySpecies(sPokedexMenu->viewBaseSpecies, 1, sPokedexMenu->viewOtId), 138 + 33, 24);
     }
 }
 
@@ -3285,24 +3403,26 @@ static u16 MonStats_GetMonNeighbour(u16 currViewSpecies, s8 offset)
     // Loop through party when using L/R from that menu
     if(sPokedexViewReq.view == DEX_VIEW_SPECIFIC_MON)
     {
+        u8 partyCount = sPokedexViewReq.inBattleScreen ? MAX_BATTLERS_COUNT : gPlayerPartyCount;
+
         do
         {
             if(offset == 1)
-                sPokedexMenu->partySlot = (sPokedexMenu->partySlot + 1) % gPlayerPartyCount;
+                sPokedexMenu->partySlot = (sPokedexMenu->partySlot + 1) % partyCount;
             else // offset == -1
             {
                 if(sPokedexMenu->partySlot == 0)
-                    sPokedexMenu->partySlot = gPlayerPartyCount - 1;
+                    sPokedexMenu->partySlot = partyCount - 1;
                 else
                     --sPokedexMenu->partySlot;
             }
         }
-        while(GetMonData(&gPlayerParty[sPokedexMenu->partySlot], MON_DATA_SPECIES) == SPECIES_NONE);
+        while(GetSpeciesAtSlot(sPokedexMenu->partySlot) == SPECIES_NONE || GetHpAtSlot(sPokedexMenu->partySlot) == 0);
 
         sPokedexMenu->viewBaseSpecies = SPECIES_NONE; // force it here so it always suceeds
-        sPokedexMenu->viewOtId = GetMonData(&gPlayerParty[sPokedexMenu->partySlot], MON_DATA_OT_ID);
+        sPokedexMenu->viewOtId = GetOtIdAtSlot(sPokedexMenu->partySlot);
 
-        return GetMonData(&gPlayerParty[sPokedexMenu->partySlot], MON_DATA_SPECIES);
+        return GetSpeciesAtSlot(sPokedexMenu->partySlot);
     }
     else
     {
@@ -3539,6 +3659,7 @@ static void MonEvos_OpenMoveQuery()
     u8 i;
     u16 moveId, itemId;
     u16 species = sPokedexMenu->viewBaseSpecies;
+    struct RoguePokemonProfile const* pokemonProfile = Rogue_GetPokemonProfile(species);
 
     // To help speed up viewing we're going to precalculate whether a special move is TM, TR or Tutor
     // (This isn't really a proper query, we're just reusing the bit field checking mostly)
@@ -3551,7 +3672,7 @@ static void MonEvos_OpenMoveQuery()
         u16 tmIndex = i;
         u16 trIndex = i + MOVE_QUERY_OFFSET;
 
-        moveId = gRoguePokemonProfiles[species].tutorMoves[i];
+        moveId = pokemonProfile->tutorMoves[i];
 
         if(moveId == MOVE_NONE)
             break;
@@ -4025,7 +4146,15 @@ u16 RoguePokedex_RedirectSpeciesGetSetFlag(u16 species)
 bool8 RoguePokedex_IsSpeciesLegendary(u16 species)
 {
 #ifdef ROGUE_EXPANSION
-    species = GET_BASE_SPECIES_ID(species);
+    switch(species)
+    {
+    // It's not but we are treating it as is it is
+    case SPECIES_FLOETTE_ETERNAL_FLOWER:
+        // don't use base species
+        break;
+    default:
+        species = GET_BASE_SPECIES_ID(species);
+    }
 #endif
 
     switch(species)
@@ -4175,6 +4304,9 @@ bool8 RoguePokedex_IsSpeciesLegendary(u16 species)
 
         case SPECIES_TERAPAGOS_TERASTAL:
         case SPECIES_TERAPAGOS_STELLAR:
+
+        // It's not but we are treating it as is it is
+        case SPECIES_FLOETTE_ETERNAL_FLOWER:
 #endif
             return TRUE;
     };
@@ -4245,6 +4377,9 @@ bool8 RoguePokedex_IsSpeciesValidBoxLegendary(u16 species)
         case SPECIES_ZAMAZENTA_CROWNED_SHIELD:
         case SPECIES_CALYREX_ICE_RIDER:
         case SPECIES_CALYREX_SHADOW_RIDER:
+
+        // Z-A
+        case SPECIES_FLOETTE_ETERNAL_FLOWER:
 #endif
             return TRUE;
     };
@@ -4382,40 +4517,36 @@ u8 const* RoguePokedex_GetSpeciesName(u16 species)
 
 u8 RoguePokedex_GetSpeciesType(u16 species, u8 typeIndex)
 {
-#ifdef ROGUE_EXPANSION
-    AGB_ASSERT(typeIndex < ARRAY_COUNT(gSpeciesInfo[species].types));
-    return gSpeciesInfo[species].types[typeIndex];
-#define gRogueSpeciesInfo  gSpeciesInfo
-#else
-    AGB_ASSERT(typeIndex < 2);
-
-    if(typeIndex == 0)
-        return gBaseStats[species].type1;
-    else
-        return gBaseStats[species].type2;
-#endif
+    return GetTypeBySpecies(species, typeIndex, 0);
 }
 
 u16 RoguePokedex_GetSpeciesBST(u16 species)
 {
-    u16 statTotal =
-        gRogueSpeciesInfo[species].baseHP +
-        gRogueSpeciesInfo[species].baseAttack +
-        gRogueSpeciesInfo[species].baseDefense +
-        gRogueSpeciesInfo[species].baseSpAttack +
-        gRogueSpeciesInfo[species].baseSpDefense +
-        gRogueSpeciesInfo[species].baseSpeed;
+    u16 statTotal;
+    struct RoguePokemonBaseStats speciesStats;
+
+    Rogue_GetPokemonBaseStats(species, &speciesStats);
+    statTotal =
+        speciesStats.baseHP +
+        speciesStats.baseAttack +
+        speciesStats.baseDefense +
+        speciesStats.baseSpAttack +
+        speciesStats.baseSpDefense +
+        speciesStats.baseSpeed;
     return statTotal;
 }
 
 static void GatherSpeciesStatsArray(u16 species, u8* stats)
 {
-    stats[STAT_HP] = gRogueSpeciesInfo[species].baseHP;
-    stats[STAT_ATK] = gRogueSpeciesInfo[species].baseAttack;
-    stats[STAT_DEF] = gRogueSpeciesInfo[species].baseDefense;
-    stats[STAT_SPATK] = gRogueSpeciesInfo[species].baseSpAttack;
-    stats[STAT_SPDEF] = gRogueSpeciesInfo[species].baseSpDefense;
-    stats[STAT_SPEED] = gRogueSpeciesInfo[species].baseSpeed;
+    struct RoguePokemonBaseStats speciesStats;
+    Rogue_GetPokemonBaseStats(species, &speciesStats);
+
+    stats[STAT_HP] = speciesStats.baseHP;
+    stats[STAT_ATK] = speciesStats.baseAttack;
+    stats[STAT_DEF] = speciesStats.baseDefense;
+    stats[STAT_SPATK] = speciesStats.baseSpAttack;
+    stats[STAT_SPDEF] = speciesStats.baseSpDefense;
+    stats[STAT_SPEED] = speciesStats.baseSpeed;
 }
 
 static u8 SelectBestWorstStat(u16 species, bool8 selectLargest)
