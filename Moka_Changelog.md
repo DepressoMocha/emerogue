@@ -1,5 +1,8 @@
 # CHANGELOG
 
+VER 2.1.2-M
+- Merged everything from upstream, thank you for your hard work Abbie!
+
 VER 2.0.3
 - Added a way to remove pocket PC via talking to Fennel
 - Manually added some egg moves for some pokemon

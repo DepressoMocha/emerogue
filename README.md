@@ -2,9 +2,9 @@
 
 [Changelog here](https://github.com/DepressoMocha/emerogue/blob/moka-dev/Moka_Changelog.md)
 
-## Is my save compatible with this one? Do I have to restart?
+## Is my save compatible? Do I have to restart?
 
-- Only if it's 2.0+, either vanilla or other patches, if compatible. Do remember to return the charms if any before patching.
+- After the recent update, it's **one-way* compatible from vanilla to this version. Remember to backup your save file if you still want to keep your vanilla save!
 
 ## About the custom settings... What does each toggles do?
 
@@ -16,7 +16,7 @@
 
 ## Why is it only for EX?
 
-- I don't play classic version, and honestly it's a hassle to compile two versions. The real reason is that separating stuff for expansion/vanilla takes time, and I don't have as much time to do so nowadays
+- I don't play classic version, and honestly it's a hassle to compile two versions. The real reason is that separating stuff for expansion/vanilla takes time, and I don't have as much time to do so nowadays.
 
 ## Where do I download the latest patch?
 
@@ -26,6 +26,6 @@
 
 - I personally don't want to mess with battle system related issues, but if others already made fixes for it, i'll gladly add it!
 
-## Will you add the new mega/new pokemon/ETC?
+## Will you add (Insert new cool things)?
 
-- Probably not, as I am very busy nowadays... This version was originally made for personal use during my free time, so I only add things when I feel like it
+- Probably not, as I am very busy nowadays... This version was originally made for personal use during my free time, so I only add things when I feel like it.
