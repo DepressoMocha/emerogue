@@ -354,31 +354,16 @@ bool8 Rogue_HandleRideMonInput()
         {
             if(gSaveBlock2Ptr->optionsRidemonControlMode == OPTIONS_RIDEMON_CONTROL_VANILLA)
             {
-                if(IsSafeToSwapRideMons())
+                if(JOY_NEW(R_BUTTON))
                 {
-                    if(JOY_NEW(L_BUTTON))
+                    if(CanCycleRideMons())
                     {
-                        if(CanCycleRideMons())
-                        {
-                            CalculateRideSpecies(-1);
-                            PlayRideMonCry();
-                        }
-                        else
-                        {
-                            PlaySE(SE_FAILURE);
-                        }
+                        CalculateRideSpecies(1);
+                        PlayRideMonCry();
                     }
-                    else if(JOY_NEW(R_BUTTON))
+                    else
                     {
-                        if(CanCycleRideMons())
-                        {
-                            CalculateRideSpecies(1);
-                            PlayRideMonCry();
-                        }
-                        else
-                        {
-                            PlaySE(SE_FAILURE);
-                        }
+                        PlaySE(SE_FAILURE);
                     }
                 }
             }
@@ -715,12 +700,9 @@ static void UpdateRideMonSprites(u8 rideObjectId, struct RideObjectEvent* rideOb
             rideObject->state.monGfx = rideObject->state.desiredRideSpecies;
 
             if(rideObjectId == RIDE_OBJECT_PLAYER)
-                FollowMon_ClearCachedPartnerSpecies();
-
-            if(rideObjectId)
             {
+                FollowMon_ClearCachedPartnerSpecies();
                 rideObject->monSpriteId = CreateObjectGraphicsSpriteInObjectEventSpace(OBJ_EVENT_GFX_FOLLOW_MON_PARTNER, SpriteCallbackDummy, spriteX, spriteY, 0);
-                gSprites[rideObject->monSpriteId].disableAnimOffsets = TRUE;
             }
             else
             {
@@ -736,11 +718,14 @@ static void UpdateRideMonSprites(u8 rideObjectId, struct RideObjectEvent* rideOb
                 
                 FollowMon_SetGraphics(gfxId, species, isShiny, 0);
                 rideObject->monSpriteId = CreateObjectGraphicsSpriteInObjectEventSpace(OBJ_EVENT_GFX_FOLLOW_MON_0 + gfxId, SpriteCallbackDummy, spriteX, spriteY, 0);
-                gSprites[rideObject->monSpriteId].disableAnimOffsets = TRUE;
             }
 
-            gSprites[rideObject->monSpriteId].oam.priority = 2;
-            StartSpriteAnim(&gSprites[rideObject->monSpriteId], ANIM_STD_GO_SOUTH);
+            if(rideObject->monSpriteId != SPRITE_NONE)
+            {
+                gSprites[rideObject->monSpriteId].disableAnimOffsets = TRUE;
+                gSprites[rideObject->monSpriteId].oam.priority = 2;
+                StartSpriteAnim(&gSprites[rideObject->monSpriteId], ANIM_STD_GO_SOUTH);
+            }
             
             // Handle returning to the screen after flying
             if(IsRideObjectFlying(rideObject))
@@ -748,29 +733,6 @@ static void UpdateRideMonSprites(u8 rideObjectId, struct RideObjectEvent* rideOb
                 SetShadowFieldEffectVisible(&gObjectEvents[rideObject->riderObjectEventId], TRUE);
                 gObjectEvents[rideObject->riderObjectEventId].hideReflection = TRUE;
             }
-
-            // If we're attempting to ride a mon, but for whatever reason we no longer can (e.g. released mon we were riding) unmount here
-            //if(CalculateInitialRideSpecies())
-            //{
-            //    s16 playerX, playerY;
-            //    PlayerGetDestCoords(&playerX, &playerY);
-//
-            //    rideObject->monSpriteId = CreateObjectGraphicsSpriteInObjectEventSpace(OBJ_EVENT_GFX_FOLLOW_MON_PARTNER, SpriteCallbackDummy, playerX, playerY, 0);
-            //    gSprites[rideObject->monSpriteId].oam.priority = 2;
-            //    StartSpriteAnim(&gSprites[rideObject->playerObject.monSpriteId], ANIM_STD_GO_SOUTH);
-            //    
-            //    // Handle returning to the screen after flying
-            //    if(Rogue_IsRideMonFlying())
-            //    {
-            //        SetShadowFieldEffectVisible(&gObjectEvents[gPlayerAvatar.objectEventId], TRUE);
-            //        gObjectEvents[gPlayerAvatar.objectEventId].hideReflection = TRUE;
-            //    }
-            //}
-            //else
-            //{
-            //    // Force demount here
-            //    Rogue_GetOnOffRideMon(sRideMonData.playerRideState.whistleType, FALSE);
-            //}
         }
 
         if(rideObject->monSpriteId != SPRITE_NONE)
@@ -1122,11 +1084,13 @@ static void UpdateRideSpriteInternal(struct RideObjectEvent* rideObject, const s
     if(species >= FOLLOWMON_SHINY_OFFSET)
         species -= FOLLOWMON_SHINY_OFFSET;
 
-    rideSpeed = CalculateMovementModeFor(species);
-
-
     AGB_ASSERT(rideObject->monSpriteId != SPRITE_NONE);
     AGB_ASSERT(rideObject->riderSpriteId != SPRITE_NONE);
+
+    if(rideObject->monSpriteId == SPRITE_NONE || rideObject->riderSpriteId == SPRITE_NONE)
+        return;
+
+    rideSpeed = CalculateMovementModeFor(species);
 
     // Fix stairs directions
     switch (facingDirection)

@@ -130,7 +130,6 @@ struct RogueAdvPath
     u8 currentRoomType;
     u8 roomCount;
     u8 pathLength;
-    u8 experimental_RouteColumn; // todo maybe union this?
     s8 pathMinY;
     s8 pathMaxY;
     u8 isOverviewActive : 1;
@@ -247,9 +246,12 @@ struct RoguePartySnapshot
 struct GameModeRules
 {
     u8 initialLevelOffset;
+    u8 initialLevelOverride;
     u8 levelOffsetInterval;
     u8 enterPartySize;
     u8 adventureGenerator;
+    u8 itemDropRarityInc;
+    u8 trainerBattleWinningsPerc;
     u8 trainerOrder : 2;
     u8 disableMainQuests : 1;
     u8 disableChallengeQuests : 1;
