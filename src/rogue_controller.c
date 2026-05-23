@@ -2367,6 +2367,7 @@ static u8 ItemToGen(u16 item)
         case ITEM_PEAT_BLOCK:
         case ITEM_ADAMANT_CRYSTAL:
         case ITEM_LUSTROUS_GLOBE:
+        case ITEM_LEGEND_PLATE:
             return 8;
 
         // Custom items

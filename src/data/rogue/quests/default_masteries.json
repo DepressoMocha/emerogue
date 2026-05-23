@@ -867,7 +867,8 @@
                     { "shop_item": "ITEM_ICICLE_PLATE", "visibility": "INVISIBLE" },
                     { "shop_item": "ITEM_DRACO_PLATE", "visibility": "INVISIBLE" },
                     { "shop_item": "ITEM_DREAD_PLATE", "visibility": "INVISIBLE" },
-                    { "shop_item": "ITEM_PIXIE_PLATE", "visibility": "INVISIBLE" }
+                    { "shop_item": "ITEM_PIXIE_PLATE", "visibility": "INVISIBLE" },
+                    { "shop_item": "ITEM_LEGEND_PLATE", "visibility": "INVISIBLE" }
                 ]
             },
 
