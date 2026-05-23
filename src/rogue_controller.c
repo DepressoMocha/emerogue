@@ -3932,6 +3932,41 @@ static void TryAutoItemPickup()
                     RemoveObjectEventByLocalIdAndMap(gObjectEvents[i].localId, gObjectEvents[i].mapNum, gObjectEvents[i].mapGroup);
                 }
             }
+            else if(template->graphicsId == OBJ_EVENT_GFX_ITEM_RARE_CANDY || template->graphicsId == OBJ_EVENT_GFX_ITEM_MASTER_BALL)
+            {
+                // this is an item, so attempt to pick it up
+                u16 amount;
+                u16 itemId = ITEM_ORANGE_MAIL; // dud item
+
+                switch (template->graphicsId)
+                {
+                case OBJ_EVENT_GFX_ITEM_RARE_CANDY:
+                    itemId = ITEM_RARE_CANDY;
+                    break;
+
+                case OBJ_EVENT_GFX_ITEM_MASTER_BALL:
+                    itemId = ITEM_MASTER_BALL;
+                    break;
+                
+                default:
+                    AGB_ASSERT(FALSE);
+                    break;
+                }
+
+                
+                VarSet(VAR_0x8001, itemId);
+                amount = Rogue_ModifyItemPickupAmount(itemId, 1);
+
+                if(AddBagItem(itemId, amount))
+                {
+                    // Force clear popups
+                    Rogue_RemoveCurrentShownPopup();
+
+                    // Fast added the item
+                    Rogue_PushPopup_AddItem2(itemId, amount, 1);
+                    RemoveObjectEventByLocalIdAndMap(gObjectEvents[i].localId, gObjectEvents[i].mapNum, gObjectEvents[i].mapGroup);
+                }
+            }
             else if(template->movementType == MOVEMENT_TYPE_BERRY_TREE_GROWTH)
             {
                 u16 stage;
@@ -3960,6 +3995,12 @@ static void TryAutoItemPickup()
                         ObjectEventInteractionRemoveBerryTree();
                     }
                 }
+            }
+            else if(template->graphicsId == OBJ_EVENT_GFX_BREAKABLE_ROCK || template->graphicsId == OBJ_EVENT_GFX_CUTTABLE_TREE || template->graphicsId == OBJ_EVENT_GFX_PUSHABLE_BOULDER)
+            {
+                gSelectedObjectEvent = i;
+                gSpecialVar_LastTalked = gObjectEvents[i].localId;
+                ScriptContext_SetupScript(template->script);
             }
         }
 
@@ -6596,6 +6637,11 @@ void RemoveMonAtSlot(u8 slot, bool8 keepItems, bool8 compactPartySlots)
 
             ZeroMonData(&gPlayerParty[slot]);
 
+#ifdef ROGUE_EXPANSION
+            // avoid reverting into this species
+            gBattleStruct->changedSpecies[B_SIDE_PLAYER][slot] = SPECIES_NONE;
+#endif
+
             if(compactPartySlots)
             {
                 CompactPartySlots();
@@ -6709,6 +6755,11 @@ void RemoveAnyFaintedMons(bool8 keepItems)
                 PushFaintedMonToLab(&gPlayerParty[read]);
 
                 ZeroMonData(&gPlayerParty[read]);
+
+#ifdef ROGUE_EXPANSION
+                // avoid reverting into this species
+                gBattleStruct->changedSpecies[B_SIDE_PLAYER][read] = SPECIES_NONE;
+#endif
             }
         }
     }

@@ -7735,7 +7735,14 @@ static u32 GetTrainerMoneyToGive(u16 trainerId)
 {
     u32 moneyReward = 0;
     Rogue_ModifyBattleWinnings(trainerId, &moneyReward);
-    return moneyReward * gBattleStruct->moneyMultiplier;
+    // Amulet coin can only boost up to 15000
+    if(gBattleStruct->moneyMultiplier > 1)
+    {
+        u32 scaledMoneyReward = min(15000, moneyReward * gBattleStruct->moneyMultiplier);
+        moneyReward = max(moneyReward, scaledMoneyReward);
+    }
+
+    return moneyReward;
 }
 
 static void Cmd_getmoneyreward(void)
@@ -12627,6 +12634,14 @@ static void Cmd_weatherdamage(void)
                     gBattleMoveDamage = 1;
                 gBattleMoveDamage *= -1;
             }
+        }
+    }
+
+    if(gBattleMoveDamage > 0 && ActiveAlphaMonEndure(gBattlerAttacker))
+    {
+        if(gBattleMons[gBattlerAttacker].hp != 0 && gBattleMoveDamage >= gBattleMons[gBattlerAttacker].hp)
+        {
+            gBattleMoveDamage = gBattleMons[gBattlerAttacker].hp - 1;
         }
     }
 
