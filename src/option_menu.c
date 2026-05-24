@@ -61,7 +61,6 @@ enum
     MENUITEM_BUTTONMODE,
     MENUITEM_FRAMETYPE,
     MENUITEM_DIFFICULTY_REWARD,
-    MENUITEM_RIDEMON_CONTROL,
     MENUITEM_SHOW_MONEY,
     MENUITEM_QUICK_ROUTE,
     MENUITEM_IGNORE_BAG,
@@ -134,8 +133,6 @@ static u8 FrameType_ProcessInput(u8 menuOffset, u8 selection);
 static void FrameType_DrawChoices(u8 menuOffset, u8 selection);
 static u8 DifficultyReward_ProcessInput(u8 menuOffset, u8 selection);
 static void DifficultyReward_DrawChoices(u8 menuOffset, u8 selection);
-static u8 RidemonControl_ProcessInput(u8 menuOffset, u8 selection);
-static void RidemonControl_DrawChoices(u8 menuOffset, u8 selection);
 static u8 ShowMoney_ProcessInput(u8 menuOffset, u8 selection);
 static void ShowMoney_DrawChoices(u8 menuOffset, u8 selection);
 static u8 QuickRoute_ProcessInput(u8 menuOffset, u8 selection);
@@ -336,12 +333,6 @@ static const struct MenuEntry sOptionMenuItems[] =
         .processInput = DifficultyReward_ProcessInput,
         .drawChoices = DifficultyReward_DrawChoices
     },
-    [MENUITEM_RIDEMON_CONTROL] =
-    {
-        .itemName = gText_RidemonControl,
-        .processInput = RidemonControl_ProcessInput,
-        .drawChoices = RidemonControl_DrawChoices
-    },
     [MENUITEM_SHOW_MONEY] =
     {
         .itemName = gText_ShowMoney,
@@ -441,7 +432,6 @@ static const struct MenuEntries sOptionMenuEntries[SUBMENUITEM_COUNT] =
         .menuOptions =
         {
             MENUITEM_DIFFICULTY_REWARD,
-            MENUITEM_RIDEMON_CONTROL,
             MENUITEM_SHOW_MONEY,
             MENUITEM_QUICK_ROUTE,
             MENUITEM_IGNORE_BAG,
@@ -1243,27 +1233,6 @@ static void DifficultyReward_DrawChoices(u8 menuOffset, u8 selection)
     DrawChoiceSelection(menuOffset, selection, options, ARRAY_COUNT(options));
 }
 
-static u8 RidemonControl_ProcessInput(u8 menuOffset, u8 selection)
-{
-    if (JOY_NEW(DPAD_LEFT | DPAD_RIGHT))
-    {
-        selection ^= 1;
-        sArrowPressed = TRUE;
-    }
-
-    return selection;
-}
-
-static void RidemonControl_DrawChoices(u8 menuOffset, u8 selection)
-{
-    u8 const* options[] = 
-    {
-        [OPTIONS_RIDEMON_CONTROL_VANILLA] = gText_RidemonControlVanilla,
-        [OPTIONS_RIDEMON_CONTROL_MOCHA] = gText_RidemonControlMocha,
-    };
-    DrawChoiceSelection(menuOffset, selection, options, ARRAY_COUNT(options));
-}
-
 static u8 ShowMoney_ProcessInput(u8 menuOffset, u8 selection)
 {
     if (JOY_NEW(DPAD_LEFT | DPAD_RIGHT))
@@ -1477,9 +1446,6 @@ static u8 GetMenuItemValue(u8 menuItem)
     
     case MENUITEM_DIFFICULTY_REWARD:
         return gSaveBlock2Ptr->optionsDifficultyRewardMode;
-    
-    case MENUITEM_RIDEMON_CONTROL:
-        return gSaveBlock2Ptr->optionsRidemonControlMode;
 
     case MENUITEM_SHOW_MONEY:
         return gSaveBlock2Ptr->optionsShowMoney;
@@ -1595,10 +1561,6 @@ static void SetMenuItemValue(u8 menuItem, u8 value)
     
     case MENUITEM_DIFFICULTY_REWARD:
         gSaveBlock2Ptr->optionsDifficultyRewardMode = value;
-        break;
-
-    case MENUITEM_RIDEMON_CONTROL:
-        gSaveBlock2Ptr->optionsRidemonControlMode = value;
         break;
 
     case MENUITEM_SHOW_MONEY:

@@ -9,7 +9,6 @@
 ## About the custom settings... What do each toggles do?
 
 - Difficulty reward: Toggling it to multiplier will change the reward to, well, multiplier based. Depends on what you toggle in the difficulty settings and what curses do you have on you before you start the adventure
-- Ridemon control:  "Vanilla" is the same control as you used to. "Mocha" changed the fly button to R button, and B for quick dismount
 - Show money: Shows money in the start menu during a run
 - Quick route: A map designed to be traversed as quickly as possible. Useful for shiny hunting legendaries, or when you want to rush the game as quickly as possible. It's generated once you enter the run/earn a badge
 - Skip starter bag: Skip the prompt to randomize starter before a run
