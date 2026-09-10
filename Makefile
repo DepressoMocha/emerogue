@@ -264,11 +264,12 @@ ifeq (,$(filter-out all rom compare agbcc modern check libagbsyscall syms $(TEST
 $(call infoshell, $(MAKE) -f make_tools.mk)
 
 # If running locally and ROM has already been build, run
-ifeq ($(wildcard $(ROM)*), $(ROM))
-ifeq ("$(GITHUB_REPOSITORY_OWNER)","")
-$(call infoshell, $(MAKE) -f make_tools_local.mk)
-endif
-endif
+#ifeq ($(wildcard $(ROM)*), $(ROM))
+#ifeq ("$(GITHUB_REPOSITORY_OWNER)","")
+#$(call infoshell, $(MAKE) -f make_tools_local.mk)
+#endif
+#endif
+# Note: I HAVE NO IDEA
 
 else
 NODEP ?= 1
