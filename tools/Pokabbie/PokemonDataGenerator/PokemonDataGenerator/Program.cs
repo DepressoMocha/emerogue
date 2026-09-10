@@ -23,19 +23,24 @@ namespace PokemonDataGenerator
 
 			GameDataHelpers.IsVanillaVersion = isVanillaVersion;
 
-            //TestMain.Run();
-
+            Console.WriteLine("0 - (Test Run)");
             Console.WriteLine("1 - Gather Pokemon data profile");
 			Console.WriteLine("2 - Generate OW Sprites");
 			Console.WriteLine("3 - Generate OW Sprites (DEBUG FAST SET)");
 			Console.WriteLine("4 - OW Sprites Palette Generator");
 			Console.WriteLine("5 - Generate Pokedex Lists");
-			Console.WriteLine("6 - Convert NPC sprites");
-			int action = ReadOption(1, 6);
+            Console.WriteLine("6 - Convert NPC sprites");
+            Console.WriteLine("7 - Latest Mega Grab");
+            Console.WriteLine("8 - Champion Mega Set Grab");
+            int action = ReadOption(0, 8);
 
 			switch(action)
-			{
-				case 1:
+            {
+                case 0:
+                    TestMain.Run();
+                    break;
+
+                case 1:
 					Console.WriteLine("==Gathering Pokemon Data Profile==");
                     Console.WriteLine("Species name:");
                     string raw = Console.ReadLine();
@@ -78,7 +83,17 @@ namespace PokemonDataGenerator
 					Console.WriteLine("==Generating NPC sprites==");
 					NpcSpriteSplitter.ExportDirectory(Path.GetFullPath("npc_in"), Path.GetFullPath("npc_out"));
 					break;
-			}
+
+				case 7:
+                    Console.WriteLine("==Running Mega Grab==");
+                    EmeraldExpansionGrab.RunMegaGrab();
+                    break;
+
+                case 8:
+                    Console.WriteLine("==Running Mega Set Grab==");
+                    ChampionsSetGrab.Run();
+                    break;
+            }
 
 
 			Console.WriteLine("Press any key to exit...");

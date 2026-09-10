@@ -120,6 +120,7 @@ static const u16 sSkillSwapBannedAbilities[] =
     ABILITY_TERA_SHIFT,
     ABILITY_PROTOSYNTHESIS,
     ABILITY_QUARK_DRIVE,
+    ABILITY_COMMANDER,
 };
 
 static const u16 sRolePlayBannedAbilities[] =
@@ -149,6 +150,7 @@ static const u16 sRolePlayBannedAbilities[] =
     ABILITY_TERA_SHIFT,
     ABILITY_PROTOSYNTHESIS,
     ABILITY_QUARK_DRIVE,
+    ABILITY_COMMANDER,
 
     ABILITY_FORECAST_PRIORITY,
 };
@@ -169,6 +171,7 @@ static const u16 sRolePlayBannedAttackerAbilities[] =
     ABILITY_GULP_MISSILE,
     ABILITY_ZERO_TO_HERO,
     ABILITY_TERA_SHIFT,
+    ABILITY_COMMANDER,
 };
 
 static const u16 sWorrySeedBannedAbilities[] =
@@ -187,6 +190,7 @@ static const u16 sWorrySeedBannedAbilities[] =
     ABILITY_GULP_MISSILE,
     ABILITY_ZERO_TO_HERO,
     ABILITY_TERA_SHIFT,
+    ABILITY_COMMANDER,
 };
 
 static const u16 sGastroAcidBannedAbilities[] =
@@ -209,6 +213,7 @@ static const u16 sGastroAcidBannedAbilities[] =
     ABILITY_TERA_SHIFT,
     ABILITY_PROTOSYNTHESIS,
     ABILITY_QUARK_DRIVE,
+    ABILITY_COMMANDER,
 };
 
 static const u16 sEntrainmentBannedAttackerAbilities[] =
@@ -229,6 +234,7 @@ static const u16 sEntrainmentBannedAttackerAbilities[] =
     ABILITY_GULP_MISSILE,
     ABILITY_ZERO_TO_HERO,
     ABILITY_TERA_SHIFT,
+    ABILITY_COMMANDER,
 
     ABILITY_FORECAST_PRIORITY,
 };
@@ -248,6 +254,7 @@ static const u16 sEntrainmentTargetSimpleBeamBannedAbilities[] =
     ABILITY_GULP_MISSILE,
     ABILITY_ZERO_TO_HERO,
     ABILITY_TERA_SHIFT,
+    ABILITY_COMMANDER,
 };
 
 static u8 CalcBeatUpPower(void)
@@ -287,7 +294,7 @@ void HandleAction_UseMove(void)
     u16 moveTarget;
 
     gBattlerAttacker = gBattlerByTurnOrder[gCurrentTurnActionNumber];
-    if (gBattleStruct->absentBattlerFlags & gBitTable[gBattlerAttacker] || !IsBattlerAlive(gBattlerAttacker))
+    if (gBattleStruct->absentBattlerFlags & gBitTable[gBattlerAttacker] || !IsBattlerAlive(gBattlerAttacker) || gBattleStruct->commanderInfo[gBattlerAttacker].commandingDondozo)
     {
         gCurrentActionFuncId = B_ACTION_FINISHED;
         return;
@@ -1021,6 +1028,7 @@ static const u8 sAbilitiesAffectedByMoldBreaker[] =
     [ABILITY_PURIFYING_SALT] = 1,
     [ABILITY_WELL_BAKED_BODY] = 1,
     [ABILITY_THERMAL_EXCHANGE] = 1,
+    [ABILITY_EELEVATE] = 1,
 };
 
 static const u8 sAbilitiesNotTraced[ABILITIES_COUNT] =
@@ -1051,6 +1059,7 @@ static const u8 sAbilitiesNotTraced[ABILITIES_COUNT] =
     [ABILITY_ZEN_MODE] = 1,
     [ABILITY_ZERO_TO_HERO] = 1,
     [ABILITY_TERA_SHIFT] = 1,
+    [ABILITY_COMMANDER] = 1,
 
     [ABILITY_FORECAST_PRIORITY] = 1,
 };
@@ -2723,7 +2732,7 @@ u8 DoBattlerEndTurnEffects(void)
             gBattleStruct->turnEffectsTracker++;
             break;
         case ENDTURN_AQUA_RING:  // aqua ring
-            if ((gStatuses3[battler] & STATUS3_AQUA_RING)
+            if ((gStatuses4[battler] & STATUS4_AQUA_RING)
              && !BATTLER_MAX_HP(battler)
              && !(gStatuses3[battler] & STATUS3_HEAL_BLOCK)
              && gBattleMons[battler].hp != 0)
@@ -4470,6 +4479,62 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
             BattleScriptPushCursorAndCallback(BattleScript_OverworldWeatherStarts);
         }
         break;
+    case ABILITYEFFECT_DEPENDS_ON_ALLY: // 0
+        gBattleScripting.battler = battler;
+        partner = BATTLE_PARTNER(battler);
+
+        if(IsDoubleBattle())
+        {
+            switch (gLastUsedAbility)
+            {
+            case ABILITY_COMMANDER:
+                if (IsBattlerAlive(partner)
+                && gBattleStruct->commanderInfo[partner].commanderSpecies == SPECIES_NONE
+                && gBattleMons[partner].species == SPECIES_DONDOZO
+                && GET_BASE_SPECIES_ID(gBattleMons[battler].species) == SPECIES_TATSUGIRI
+                && (gChosenActionByBattler[battler] != B_ACTION_SWITCH || HasBattlerActedThisTurn(battler))
+                && (gChosenActionByBattler[partner] != B_ACTION_SWITCH || HasBattlerActedThisTurn(partner)))
+                {
+                    gBattlerTarget = battler;
+                    gBattlerAttacker = partner;
+                    PREPARE_MON_NICK_BUFFER(gBattleTextBuff1, battler, gBattlerPartyIndexes[battler]);
+                    PREPARE_MON_NICK_BUFFER(gBattleTextBuff2, partner, gBattlerPartyIndexes[partner]);
+                    gBattleStruct->commanderInfo[battler].commandingDondozo = TRUE;
+                    gBattleStruct->commanderInfo[partner].commanderSpecies = gBattleMons[battler].species;
+                    gStatuses3[battler] |= STATUS3_COMMANDER;
+
+                    // Clear gimmicks 
+                    gBattleStruct->mega.toEvolve &= ~gBitTable[battler];
+                    gBattleStruct->dynamax.toDynamax &= ~gBitTable[battler];
+                    gBattleStruct->tera.toTera &= ~gBitTable[battler];
+                    gBattleStruct->zmove.toBeUsed[battler] = MOVE_NONE;
+
+
+                    if((gBattleMons[battler].status2 & STATUS2_CONFUSION) && !(gStatuses4[battler] & STATUS4_INFINITE_CONFUSION))
+                        gBattleMons[battler].status2 -= STATUS2_CONFUSION_TURN(1);
+
+                    BtlController_EmitSpriteInvisibility(battler, BUFFER_A, TRUE);
+                    MarkBattlerForControllerExec(battler);
+                    BattleScriptPushCursorAndCallback(BattleScript_CommanderActivates);
+                    effect++;
+                }
+                break;
+            }
+
+            // Attempt to go again but with partner this time
+            if (effect == 0 && ability == ABILITY_NONE && IsBattlerAlive(partner))
+            {
+                // Manually pass in ability here to avoid infinite loop
+                u32 partnerAbility = GetBattlerAbility(partner);
+
+                // Handle cases where ability could be removed e.g. Neutralising Gas
+                if(partnerAbility != ABILITY_NONE)
+                {
+                    effect = AbilityBattleEffects(caseID, partner, GetBattlerAbility(partner), 0, 0);
+                }
+            }
+        }
+        break;
     case ABILITYEFFECT_ON_SWITCHIN: // 0
         gBattleScripting.battler = battler;
         switch (gLastUsedAbility)
@@ -5518,7 +5583,9 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
              && !(gBattleTypeFlags & BATTLE_TYPE_ARENA)
              && CountUsablePartyMons(battler) > 0
              // Not currently held by Sky Drop
-             && !(gStatuses3[battler] & STATUS3_SKY_DROPPED))
+             && !(gStatuses3[battler] & STATUS3_SKY_DROPPED)
+             && !(gStatuses3[battler] & STATUS3_COMMANDER)
+             && gBattleStruct->commanderInfo[battler].commanderSpecies == SPECIES_NONE)
             {
                 gBattleResources->flags->flags[battler] |= RESOURCE_FLAG_EMERGENCY_EXIT;
                 effect++;
@@ -5587,7 +5654,8 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
                         break;
                     }
 
-                    gLastUsedAbility = gBattleMons[gBattlerAttacker].ability = gBattleStruct->overwrittenAbilities[gBattlerAttacker] = gBattleMons[gBattlerTarget].ability;
+                    gLastUsedAbility = gBattleMons[gBattlerAttacker].ability;
+                    gBattleMons[gBattlerAttacker].ability = gBattleStruct->overwrittenAbilities[gBattlerAttacker] = gBattleMons[gBattlerTarget].ability;
                     BattleScriptPushCursor();
                     gBattlescriptCurrInstr = BattleScript_MummyActivates;
                     effect++;
@@ -6608,6 +6676,10 @@ bool32 CanBattlerEscape(u32 battler) // no ability check
     else if (gFieldStatuses & STATUS_FIELD_FAIRY_LOCK)
         return FALSE;
     else if (gStatuses3[battler] & STATUS3_SKY_DROPPED)
+        return FALSE;
+    else if (gStatuses3[battler] & STATUS3_COMMANDER)
+        return FALSE;
+    else if (gBattleStruct->commanderInfo[battler].commanderSpecies != SPECIES_NONE)
         return FALSE;
     else
         return TRUE;
@@ -8717,6 +8789,8 @@ static bool32 IsBattlerGrounded2(u32 battler, bool32 considerInverse)
         return FALSE;
     if (GetBattlerAbility(battler) == ABILITY_LEVITATE)
         return FALSE;
+    if (GetBattlerAbility(battler) == ABILITY_EELEVATE)
+        return FALSE;
     if (IS_BATTLER_OF_TYPE(battler, TYPE_FLYING) && (!considerInverse || !FlagGet(B_FLAG_INVERSE_BATTLE)))
         return FALSE;
     return TRUE;
@@ -9352,6 +9426,10 @@ static inline u32 CalcMoveBasePowerAfterModifiers(u32 move, u32 battlerAtk, u32 
         if (moveType == TYPE_STEEL)
            modifier = uq4_12_multiply(modifier, UQ_4_12(1.5));
         break;
+    case ABILITY_DRAGON_FLY:
+        if (moveType == TYPE_BUG)
+            modifier = uq4_12_multiply(modifier, UQ_4_12(1.5));
+        break;
     case ABILITY_PIXILATE:
         if (moveType == TYPE_FAIRY && gBattleStruct->ateBoost[battlerAtk])
             modifier = uq4_12_multiply(modifier, UQ_4_12(1.2));
@@ -9434,6 +9512,10 @@ static inline u32 CalcMoveBasePowerAfterModifiers(u32 move, u32 battlerAtk, u32 
         break;
     case ABILITY_SUPREME_OVERLORD:
         modifier = uq4_12_multiply(modifier, GetSupremeOverlordModifier(battlerAtk));
+        break;
+    case ABILITY_FIRE_MANE:
+        if (moveType == TYPE_FIRE)
+            modifier = uq4_12_multiply(modifier, UQ_4_12(1.5));
         break;
     }
 
@@ -10500,6 +10582,14 @@ static inline uq4_12_t CalcTypeEffectivenessMultiplierInternal(u32 move, u32 mov
             gBattleCommunication[MISS_TYPE] = B_MSG_GROUND_MISS;
             RecordAbilityBattle(battlerDef, ABILITY_LEVITATE);
         }
+        else if (recordAbilities && defAbility == ABILITY_EELEVATE)
+        {
+            gLastUsedAbility = ABILITY_EELEVATE;
+            gMoveResultFlags |= (MOVE_RESULT_MISSED | MOVE_RESULT_DOESNT_AFFECT_FOE);
+            gLastLandedMoves[battlerDef] = 0;
+            gBattleCommunication[MISS_TYPE] = B_MSG_GROUND_MISS;
+            RecordAbilityBattle(battlerDef, ABILITY_EELEVATE);
+        }
     }
     else if (B_SHEER_COLD_IMMUNITY >= GEN_7 && move == MOVE_SHEER_COLD && IS_BATTLER_OF_TYPE(battlerDef, TYPE_ICE))
     {
@@ -10588,6 +10678,14 @@ static inline uq4_12_t CalcTypeEffectivenessMultiplierForUIInternal(u32 move, u3
             gBattleCommunication[MISS_TYPE] = B_MSG_GROUND_MISS;
             RecordAbilityBattle(battlerDef, ABILITY_LEVITATE);
         }
+        else if (recordAbilities && defAbility == ABILITY_EELEVATE)
+        {
+            gLastUsedAbility = ABILITY_EELEVATE;
+            gMoveResultFlags |= (MOVE_RESULT_MISSED | MOVE_RESULT_DOESNT_AFFECT_FOE);
+            gLastLandedMoves[battlerDef] = 0;
+            gBattleCommunication[MISS_TYPE] = B_MSG_GROUND_MISS;
+            RecordAbilityBattle(battlerDef, ABILITY_EELEVATE);
+        }
     }
     else if (B_SHEER_COLD_IMMUNITY >= GEN_7 && move == MOVE_SHEER_COLD && IS_BATTLER_OF_TYPE(battlerDef, TYPE_ICE))
     {
@@ -10650,7 +10748,7 @@ uq4_12_t CalcPartyMonTypeEffectivenessMultiplier(u16 move, u16 speciesDef, u16 a
         if (GetTypeBySpecies(speciesDef, 1, otIdDef) != GetTypeBySpecies(speciesDef, 0, otIdDef))
             MulByTypeEffectiveness(&modifier, move, moveType, 0, GetTypeBySpecies(speciesDef, 1, otIdDef), 0, FALSE);
 
-        if (moveType == TYPE_GROUND && abilityDef == ABILITY_LEVITATE && !(gFieldStatuses & STATUS_FIELD_GRAVITY))
+        if (moveType == TYPE_GROUND && (abilityDef == ABILITY_LEVITATE || abilityDef == ABILITY_EELEVATE) && !(gFieldStatuses & STATUS_FIELD_GRAVITY))
             modifier = UQ_4_12(0.0);
         if (abilityDef == ABILITY_WONDER_GUARD && modifier <= UQ_4_12(1.0) && gBattleMoves[move].power)
             modifier = UQ_4_12(0.0);
@@ -11894,7 +11992,7 @@ bool8 CanMonParticipateInSkyBattle(struct Pokemon *mon)
     u16 species = GetMonData(mon, MON_DATA_SPECIES);
     u32 otId = GetMonData(mon, MON_DATA_OT_ID);
 
-    bool8 hasLevitateAbility = GetMonAbility(mon) == ABILITY_LEVITATE;
+    bool8 hasLevitateAbility = (GetMonAbility(mon) == ABILITY_LEVITATE || GetMonAbility(mon) == ABILITY_EELEVATE);
     bool8 isFlyingType = GetTypeBySpecies(species, 0, otId) == TYPE_FLYING || GetTypeBySpecies(species, 1, otId) == TYPE_FLYING;
     bool8 monIsValidAndNotEgg = GetMonData(mon, MON_DATA_SANITY_HAS_SPECIES) && !GetMonData(mon, MON_DATA_IS_EGG);
 

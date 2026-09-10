@@ -23,7 +23,6 @@
 #include "item_icon.h"
 #include "item_menu_icons.h"
 #include "item_use.h"
-#include "lilycove_lady.h"
 #include "list_menu.h"
 #include "link.h"
 #include "mail.h"
@@ -193,7 +192,6 @@ static void Task_ChooseHowManyToDeposit(u8 taskId);
 static void WaitDepositErrorMessage(u8);
 static void CB2_ApprenticeExitBagMenu(void);
 static void CB2_FavorLadyExitBagMenu(void);
-static void CB2_QuizLadyExitBagMenu(void);
 static void UpdatePocketItemLists(void);
 static void InitPocketListPositions(void);
 static void InitPocketScrollPositions(void);
@@ -903,8 +901,7 @@ void FavorLadyOpenBagMenu(void)
 
 void QuizLadyOpenBagMenu(void)
 {
-    GoToBagMenu(ITEMMENULOCATION_QUIZ_LADY, POCKETS_COUNT, CB2_QuizLadyExitBagMenu);
-    gSpecialVar_Result = FALSE;
+    AGB_ASSERT(FALSE);
 }
 
 void GoToBagMenu(u8 location, u8 pocket, void ( *exitCallback)())
@@ -1198,29 +1195,43 @@ static void LoadBagItemListBuffers(u8 pocketId)
     gMultiuseListMenuTemplate.maxShowed = gBagMenu->numShownItems[pocketId];
 }
 
+static const u8 sText_Revised[] = _("{REVISED_EDIT}");
+
 static void GetItemName(u8 *dest, u16 itemId)
 {
     switch (gBagPosition.pocket)
     {
     case TMHM_POCKET:
-        StringCopy(gStringVar2, gMoveNames[ItemIdToBattleMoveId(itemId)]);
-        if (itemId >= ITEM_TR01)
         {
-            // Get TR number
-            ConvertIntToDecimalStringN(gStringVar1, itemId - ITEM_TR01 + 1, STR_CONV_MODE_LEADING_ZEROS, 2);
-            StringExpandPlaceholders(dest, gText_NumberItem_HM);
-        }
-        else if (itemId >= ITEM_HM01)
-        {
-            // Get HM number
-            ConvertIntToDecimalStringN(gStringVar1, itemId - ITEM_HM01 + 1, STR_CONV_MODE_LEADING_ZEROS, 1);
-            StringExpandPlaceholders(dest, gText_NumberItem_HM);
-        }
-        else
-        {
-            // Get TM number
-            ConvertIntToDecimalStringN(gStringVar1, itemId - ITEM_TM01 + 1, STR_CONV_MODE_LEADING_ZEROS, 2);
-            StringExpandPlaceholders(dest, gText_NumberItem_HM);
+            u32 moveId = ItemIdToBattleMoveId(itemId);
+            if(Rogue_HasMoveBeenRevised(moveId))
+            {
+                StringCopy(gStringVar2, sText_Revised);
+                StringAppend(gStringVar2, gMoveNames[moveId]);
+            }
+            else
+            {
+                StringCopy(gStringVar2, gMoveNames[moveId]);
+            }
+
+            if (itemId >= ITEM_TR01)
+            {
+                // Get TR number
+                ConvertIntToDecimalStringN(gStringVar1, itemId - ITEM_TR01 + 1, STR_CONV_MODE_LEADING_ZEROS, 2);
+                StringExpandPlaceholders(dest, gText_NumberItem_HM);
+            }
+            else if (itemId >= ITEM_HM01)
+            {
+                // Get HM number
+                ConvertIntToDecimalStringN(gStringVar1, itemId - ITEM_HM01 + 1, STR_CONV_MODE_LEADING_ZEROS, 1);
+                StringExpandPlaceholders(dest, gText_NumberItem_HM);
+            }
+            else
+            {
+                // Get TM number
+                ConvertIntToDecimalStringN(gStringVar1, itemId - ITEM_TM01 + 1, STR_CONV_MODE_LEADING_ZEROS, 2);
+                StringExpandPlaceholders(dest, gText_NumberItem_HM);
+            }
         }
         break;
     case BERRIES_POCKET:
@@ -3309,7 +3320,7 @@ static void ItemMenu_GiveFavorLady(u8 taskId)
 
 static void CB2_FavorLadyExitBagMenu(void)
 {
-    gFieldCallback = FieldCallback_FavorLadyEnableScriptContexts;
+    AGB_ASSERT(FALSE);
     SetMainCallback2(CB2_ReturnToField);
 }
 
@@ -3407,12 +3418,6 @@ static void ItemMenu_SortByValue(u8 taskId)
 static void ItemMenu_SortByAmount(u8 taskId)
 {
     SortBagBy(taskId, ITEM_SORT_MODE_AMOUNT);
-}
-
-static void CB2_QuizLadyExitBagMenu(void)
-{
-    gFieldCallback = FieldCallback_QuizLadyEnableScriptContexts;
-    SetMainCallback2(CB2_ReturnToField);
 }
 
 static void PrintPocketNames(const u8 *pocketName1, const u8 *pocketName2)

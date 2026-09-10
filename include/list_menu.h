@@ -35,6 +35,9 @@ struct ListMenuItem
     s32 id;
 };
 
+typedef u8 const* (* ItemPrintNameCallback)(s32 itemId, u8 const* itemName);
+
+// Be careful editing this (Needs to fit in Task data see ListMenuInitInternal)
 struct ListMenuTemplate
 {
     const struct ListMenuItem *items;
@@ -108,6 +111,7 @@ extern struct ListMenuTemplate gMultiuseListMenuTemplate;
 
 s32 DoMysteryGiftListMenu(const struct WindowTemplate *windowTemplate, const struct ListMenuTemplate *listMenuTemplate, u8 drawMode, u16 tileNum, u16 palNum);
 u8 ListMenuInit(struct ListMenuTemplate *listMenuTemplate, u16 scrollOffset, u16 selectedRow);
+u8 ListMenuInitWithCustomPrint(struct ListMenuTemplate *listMenuTemplate, u16 scrollOffset, u16 selectedRow, ItemPrintNameCallback printNameCallback);
 u8 ListMenuInitInRect(struct ListMenuTemplate *listMenuTemplate, struct ListMenuWindowRect *rect, u16 scrollOffset, u16 selectedRow);
 s32 ListMenu_ProcessInput(u8 listTaskId);
 void DestroyListMenuTask(u8 listTaskId, u16 *scrollOffset, u16 *selectedRow);
@@ -119,6 +123,7 @@ void ListMenuGetCurrentItemArrayId(u8 listTaskId, u16 *arrayId);
 void ListMenuGetScrollAndRow(u8 listTaskId, u16 *scrollOffset, u16 *selectedRow);
 u16 ListMenuGetYCoordForPrintingArrowCursor(u8 listTaskId);
 void ListMenuOverrideSetColors(u8 cursorPal, u8 fillValue, u8 cursorShadowPal);
+void ListMenuOverrideItemPrintName(ItemPrintNameCallback callback);
 void ListMenuDefaultCursorMoveFunc(s32 itemIndex, u8 onInit, struct ListMenu *list);
 s32 ListMenuGetUnkIndicatorsStructFields(u8 taskId, u8 field);
 void ListMenuSetUnkIndicatorsStructField(u8 taskId, u8 field, s32 value);

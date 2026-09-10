@@ -2,7 +2,6 @@
 #include "main.h"
 #include "battle.h"
 #include "bg.h"
-#include "contest_effect.h"
 #include "data.h"
 #include "event_data.h"
 #include "field_screen_effect.h"
@@ -391,6 +390,7 @@ static void DoMoveRelearnerMain(void);
 static void CreateLearnableMovesList(void);
 static u8 LoadMoveRelearnerMovesList(const struct ListMenuItem *items, u16 numChoices);
 static void MoveRelearnerCursorCallback(s32 itemIndex, bool8 onInit, struct ListMenu *list);
+static u8 const* MoveRelearnerItemNameCallback(s32 itemId, u8 const* itemName);
 static void MoveRelearnerLoadBattleMoveDescription(u32 chosenMove);
 static void MoveRelearnerMenuLoadContestMoveDescription(u32 chosenMove);
 static void CreateUISprites(void);
@@ -605,7 +605,7 @@ static void CB2_InitLearnMove(void)
     CreateUISprites();
 
     // set via sMoveRelearnerMovesListTemplate
-    sMoveRelearnerStruct->moveListMenuTask = ListMenuInit(&gMultiuseListMenuTemplate, sMoveRelearnerMenuSate.listOffset, sMoveRelearnerMenuSate.listRow);
+    sMoveRelearnerStruct->moveListMenuTask = ListMenuInitWithCustomPrint(&gMultiuseListMenuTemplate, sMoveRelearnerMenuSate.listOffset, sMoveRelearnerMenuSate.listRow, MoveRelearnerItemNameCallback);
     SetBackdropFromColor(RGB_BLACK);
     SetMainCallback2(CB2_MoveRelearnerMain);
 }
@@ -645,7 +645,7 @@ static void CB2_InitLearnMoveReturnFromSelectMove(void)
     }
 
     // set via sMoveRelearnerMovesListTemplate
-    sMoveRelearnerStruct->moveListMenuTask = ListMenuInit(&gMultiuseListMenuTemplate, sMoveRelearnerMenuSate.listOffset, sMoveRelearnerMenuSate.listRow);
+    sMoveRelearnerStruct->moveListMenuTask = ListMenuInitWithCustomPrint(&gMultiuseListMenuTemplate, sMoveRelearnerMenuSate.listOffset, sMoveRelearnerMenuSate.listRow, MoveRelearnerItemNameCallback);
     SetBackdropFromColor(RGB_BLACK);
     SetMainCallback2(CB2_MoveRelearnerMain);
 }
@@ -968,7 +968,7 @@ static void DoMoveRelearnerMain(void)
                 }
 
                 StringCopy(gStringVar2, gMoveNames[GetCurrentSelectedMove()]);
-                FormatAndPrintText(gText_MoveRelearnerAndPoof);
+                //FormatAndPrintText(gText_MoveRelearnerAndPoof);
                 sMoveRelearnerStruct->state = MENU_STATE_DOUBLE_FANFARE_FORGOT_MOVE;
                 gSpecialVar_0x8006 = TRUE;
             }
@@ -1018,7 +1018,7 @@ static void DoMoveRelearnerMain(void)
                 --sMoveRelearnerMenuSate.listOffset;
             //sMoveRelearnerMenuSate.listOffset = 0;
             //sMoveRelearnerMenuSate.listRow = 0;
-            sMoveRelearnerStruct->moveListMenuTask = ListMenuInit(&gMultiuseListMenuTemplate, sMoveRelearnerMenuSate.listOffset, sMoveRelearnerMenuSate.listRow);
+            sMoveRelearnerStruct->moveListMenuTask = ListMenuInitWithCustomPrint(&gMultiuseListMenuTemplate, sMoveRelearnerMenuSate.listOffset, sMoveRelearnerMenuSate.listRow, MoveRelearnerItemNameCallback);
             
             // Reshow move screen
             sMoveRelearnerStruct->state = MENU_STATE_PRINT_STOP_TEACHING;
@@ -1092,10 +1092,10 @@ static void HandleInput(bool8 showContest)
         DestroyListMenuTask(sMoveRelearnerStruct->moveListMenuTask, &sMoveRelearnerMenuSate.listOffset, &sMoveRelearnerMenuSate.listRow);
         sMoveRelearnerMenuSate.listOffset = 0;
         sMoveRelearnerMenuSate.listRow = 0;
-        sMoveRelearnerStruct->moveListMenuTask = ListMenuInit(&gMultiuseListMenuTemplate, sMoveRelearnerMenuSate.listOffset, sMoveRelearnerMenuSate.listRow);
+        sMoveRelearnerStruct->moveListMenuTask = ListMenuInitWithCustomPrint(&gMultiuseListMenuTemplate, sMoveRelearnerMenuSate.listOffset, sMoveRelearnerMenuSate.listRow, MoveRelearnerItemNameCallback);
 
-        //MoveRelearnerShowHideHearts(GetCurrentSelectedMove());
-        //MoveRelearnerLoadBattleMoveDescription(GetCurrentSelectedMove());
+        MoveRelearnerShowHideHearts(GetCurrentSelectedMove());
+        MoveRelearnerLoadBattleMoveDescription(GetCurrentSelectedMove());
 
         PutWindowTilemap(0);
         ScheduleBgCopyTilemapToVram(1);
@@ -1285,6 +1285,27 @@ static void MoveRelearnerCursorCallback(s32 itemIndex, bool8 onInit, struct List
     MoveRelearnerMenuLoadContestMoveDescription(itemIndex);
 }
 
+// Use FONT_SMALL_NARROW for rendering but FONT_NORMAL for height spacing
+static const u8 sText_Revised[] = _("{FONT_SMALL_NARROW}{COLOR BLUE}{SHADOW LIGHT_BLUE}{REVISED_EDIT}{COLOR DARK_GRAY}{SHADOW LIGHT_GRAY}{FONT_SMALL_NARROW}");
+static const u8 sText_Original[] = _("{FONT_SMALL_NARROW}");
+
+static u8 const* MoveRelearnerItemNameCallback(s32 chosenMove, u8 const* moveName)
+{
+    u8* str;
+
+    if(chosenMove != LIST_CANCEL && chosenMove != MOVE_UNAVAILABLE && Rogue_HasMoveBeenRevised(chosenMove))
+    {
+        str = StringCopy(gStringVar4, sText_Revised);
+    }
+    else
+    {
+        str = StringCopy(gStringVar4, sText_Original);
+    }
+
+    StringAppend(str, moveName);
+    return gStringVar4;
+}
+
 static const u8 sUnavaliableDescription_Run[] = _(
     "Earn Badges with this {PKMN} in\n"
     "your Party, to unlock\n"
@@ -1428,38 +1449,40 @@ static void MoveRelearnerLoadBattleMoveDescription(u32 chosenMove)
 
 static void MoveRelearnerMenuLoadContestMoveDescription(u32 chosenMove)
 {
-    s32 x;
-    const u8 *str;
-    const struct ContestMove *move;
-
     MoveRelearnerShowHideHearts(chosenMove);
-    FillWindowPixelBuffer(1, PIXEL_FILL(1));
-    str = gText_MoveRelearnerContestMovesTitle;
-    x = GetStringCenterAlignXOffset(FONT_NORMAL, str, 0x80);
-    AddTextPrinterParameterized(1, FONT_NORMAL, str, x, 1, TEXT_SKIP_DRAW, NULL);
-
-    str = gText_MoveRelearnerAppeal;
-    x = GetStringRightAlignXOffset(FONT_NORMAL, str, 0x5C);
-    AddTextPrinterParameterized(1, FONT_NORMAL, str, x, 0x19, TEXT_SKIP_DRAW, NULL);
-
-    str = gText_MoveRelearnerJam;
-    x = GetStringRightAlignXOffset(FONT_NORMAL, str, 0x5C);
-    AddTextPrinterParameterized(1, FONT_NORMAL, str, x, 0x29, TEXT_SKIP_DRAW, NULL);
-
-    if (chosenMove == MENU_NOTHING_CHOSEN)
-    {
-        CopyWindowToVram(1, COPYWIN_GFX);
-        return;
-    }
-
-    move = &gContestMoves[chosenMove];
-    str = gContestMoveTypeTextPointers[move->contestCategory];
-    AddTextPrinterParameterized(1, FONT_NORMAL, str, 4, 0x19, TEXT_SKIP_DRAW, NULL);
-
-    str = gContestEffectDescriptionPointers[move->effect];
-    AddTextPrinterParameterized(1, FONT_NARROW, str, 0, 0x41, TEXT_SKIP_DRAW, NULL);
-
-    CopyWindowToVram(1, COPYWIN_GFX);
+    
+    //s32 x;
+    //const u8 *str;
+    //const struct ContestMove *move;
+//
+    //MoveRelearnerShowHideHearts(chosenMove);
+    //FillWindowPixelBuffer(1, PIXEL_FILL(1));
+    //str = gText_MoveRelearnerContestMovesTitle;
+    //x = GetStringCenterAlignXOffset(FONT_NORMAL, str, 0x80);
+    //AddTextPrinterParameterized(1, FONT_NORMAL, str, x, 1, TEXT_SKIP_DRAW, NULL);
+//
+    //str = gText_MoveRelearnerAppeal;
+    //x = GetStringRightAlignXOffset(FONT_NORMAL, str, 0x5C);
+    //AddTextPrinterParameterized(1, FONT_NORMAL, str, x, 0x19, TEXT_SKIP_DRAW, NULL);
+//
+    //str = gText_MoveRelearnerJam;
+    //x = GetStringRightAlignXOffset(FONT_NORMAL, str, 0x5C);
+    //AddTextPrinterParameterized(1, FONT_NORMAL, str, x, 0x29, TEXT_SKIP_DRAW, NULL);
+//
+    //if (chosenMove == MENU_NOTHING_CHOSEN)
+    //{
+    //    CopyWindowToVram(1, COPYWIN_GFX);
+    //    return;
+    //}
+//
+    //move = &gContestMoves[chosenMove];
+    //str = gContestMoveTypeTextPointers[move->contestCategory];
+    //AddTextPrinterParameterized(1, FONT_NORMAL, str, 4, 0x19, TEXT_SKIP_DRAW, NULL);
+//
+    //str = gContestEffectDescriptionPointers[move->effect];
+    //AddTextPrinterParameterized(1, FONT_NARROW, str, 0, 0x41, TEXT_SKIP_DRAW, NULL);
+//
+    //CopyWindowToVram(1, COPYWIN_GFX);
 }
 
 void MoveRelearnerShowHideHearts(s32 moveId)

@@ -1368,7 +1368,7 @@ u16 Rogue_ModifyItemPickupAmount(u16 itemId, u16 amount)
 {
     if(Rogue_IsRunActive())
     {
-        if(gRogueAdvPath.currentRoomType == ADVPATH_ROOM_ROUTE || gRogueAdvPath.currentRoomType == ADVPATH_ROOM_TEAM_HIDEOUT || gRogueAdvPath.currentRoomType == ADVPATH_ROOM_RESTSTOP)
+        if(gRogueAdvPath.currentRoomType == ADVPATH_ROOM_ROUTE || gRogueAdvPath.currentRoomType == ADVPATH_ROOM_TEAM_HIDEOUT || gRogueAdvPath.currentRoomType == ADVPATH_ROOM_RESTSTOP || gRogueAdvPath.currentRoomType == ADVPATH_ROOM_GAMESHOW)
         {
             u8 pocket = ItemId_GetPocket(itemId);
             amount = 1;
@@ -1764,8 +1764,8 @@ static u32 CalculateBattleWinnings(u16 trainerNum)
         {
             if(gRogueAdvPath.currentRoomType == ADVPATH_ROOM_BATTLE_TOWER)
             {
-                // 66% boost
-                moneyReward = (moneyReward * 5) / 3;
+                // 33% boost
+                moneyReward = (moneyReward * 4) / 3;
             }
         }
     }
@@ -2056,107 +2056,6 @@ bool8 Rogue_CanRenameMon(struct Pokemon* mon)
         return RogueGift_CanRenameCustomMon(customMonId);
 
     return FALSE;
-}
-
-u8 SpeciesToGen(u16 species)
-{
-    if(species >= SPECIES_BULBASAUR && species <= SPECIES_MEW)
-        return 1;
-    if(species >= SPECIES_CHIKORITA && species <= SPECIES_CELEBI)
-        return 2;
-    if(species >= SPECIES_TREECKO && species <= SPECIES_DEOXYS)
-        return 3;
-#ifdef ROGUE_EXPANSION
-    if(species >= SPECIES_TURTWIG && species <= SPECIES_ARCEUS)
-        return 4;
-    if(species >= SPECIES_VICTINI && species <= SPECIES_GENESECT)
-        return 5;
-    if(species >= SPECIES_CHESPIN && species <= SPECIES_VOLCANION)
-        return 6;
-    if(species >= SPECIES_ROWLET && species <= SPECIES_MELMETAL)
-        return 7;
-    if(species >= SPECIES_GROOKEY && species <= SPECIES_CALYREX)
-        return 8;
-    // Hisui is classes as gen8
-    if(species >= SPECIES_WYRDEER && species <= SPECIES_ENAMORUS)
-        return 8;
-
-    if(species >= SPECIES_SPRIGATITO && species <= SPECIES_PECHARUNT)
-        return 9;
-
-    if(species >= SPECIES_RATTATA_ALOLAN && species <= SPECIES_MAROWAK_ALOLAN)
-        return 7;
-    if(species >= SPECIES_MEOWTH_GALARIAN && species <= SPECIES_STUNFISK_GALARIAN)
-        return 8;
-
-    // Hisui is classes as gen8
-    if(species >= SPECIES_GROWLITHE_HISUIAN && species <= SPECIES_DECIDUEYE_HISUIAN)
-        return 8;
-
-    if(species >= SPECIES_BURMY_SANDY_CLOAK && species <= SPECIES_ARCEUS_FAIRY)
-        return 4;
-
-    // Just treat megas as gen 1 as they are controlled by a different mechanism
-    if(species >= SPECIES_VENUSAUR_MEGA && species <= SPECIES_GROUDON_PRIMAL)
-        return 1;
-    if(species >= SPECIES_CLEFABLE_MEGA && species <= SPECIES_GLIMMORA_MEGA)
-        return 1;
-    if(species >= SPECIES_VENUSAUR_GIGANTAMAX && species <= SPECIES_URSHIFU_RAPID_STRIKE_STYLE_GIGANTAMAX)
-        return 1;
-    
-    switch(species)
-    {
-        case SPECIES_GIRATINA_ORIGIN:
-            return 4;
-
-        case SPECIES_PALKIA_ORIGIN:
-        case SPECIES_DIALGA_ORIGIN:
-            return 8;
-
-        case SPECIES_KYUREM_WHITE:
-        case SPECIES_KYUREM_BLACK:
-            return 5;
-        
-        //case SPECIES_ZYGARDE_COMPLETE:
-        //    return 6;
-
-        case SPECIES_NECROZMA_DUSK_MANE:
-        case SPECIES_NECROZMA_DAWN_WINGS:
-        case SPECIES_NECROZMA_ULTRA:
-            return 7;
-
-        case SPECIES_ZACIAN_CROWNED_SWORD:
-        case SPECIES_ZAMAZENTA_CROWNED_SHIELD:
-        case SPECIES_ETERNATUS_ETERNAMAX:
-        case SPECIES_URSHIFU_RAPID_STRIKE_STYLE:
-        case SPECIES_ZARUDE_DADA:
-        case SPECIES_CALYREX_ICE_RIDER:
-        case SPECIES_CALYREX_SHADOW_RIDER:
-        case SPECIES_ENAMORUS_THERIAN:
-            return 8;
-
-        case SPECIES_FLOETTE_ETERNAL_FLOWER:
-            return 9;
-
-        // Alternate forms
-        case SPECIES_MEOWSTIC_FEMALE:
-            return 7;
-
-        case SPECIES_INDEEDEE_FEMALE:
-            return 8;
-    }
-
-    if(species >= SPECIES_LYCANROC_MIDNIGHT && species <= SPECIES_LYCANROC_DUSK)
-        return 7;
-
-    if(species >= SPECIES_TOXTRICITY_LOW_KEY && species <= SPECIES_ALCREMIE_STRAWBERRY_RAINBOW_SWIRL)
-        return 8;
-
-    if(species >= SPECIES_ALCREMIE_BERRY_VANILLA_CREAM && species <= SPECIES_ALCREMIE_RIBBON_RAINBOW_SWIRL)
-        return 8;
-#endif
-    
-    return 0;
 }
 
 static u8 ItemToGen(u16 item)
@@ -2526,22 +2425,11 @@ bool8 Rogue_IsItemEnabled(u16 itemId)
         {
             switch (itemId)
             {
-            case ITEM_SCOLIPITE:
-            case ITEM_SCRAFTINITE:
-            case ITEM_EELEKTROSSITE:
-            case ITEM_PYROARITE:
-            case ITEM_MALAMARITE:
-            case ITEM_BARBARACITE:
-            case ITEM_DRAGALGITE:
             case ITEM_ZYGARDITE:
-            case ITEM_FALINKSITE:
             case ITEM_HEATRANITE:
             case ITEM_DARKRANITE:
             case ITEM_ZERAORITE:
-            case ITEM_RAICHUNITE_X:
-            case ITEM_RAICHUNITE_Y:
             case ITEM_ABSOLITE_Z:
-            case ITEM_STARAPTITE:
             case ITEM_GARCHOMPITE_Z:
             case ITEM_LUCARIONITE_Z:
             case ITEM_GOLISOPITE:
@@ -3440,7 +3328,7 @@ void Rogue_OnNewGame(void)
     
     SetMoney(&gSaveBlock1Ptr->money, 0);
     memset(&gRogueLocal, 0, sizeof(gRogueLocal));
-
+    
     FlagSet(FLAG_ROGUE_SETTINGS_MENU_DISPLAY_HIGHLIGHT);
     
     FlagClear(FLAG_ROGUE_RUN_ACTIVE);
@@ -3503,6 +3391,9 @@ void Rogue_OnNewGame(void)
     memset(gRogueSaveBlock->daycarePokemon, 0, sizeof(gRogueSaveBlock->daycarePokemon));
     memset(gRogueSaveBlock->adventureReplay, 0, sizeof(gRogueSaveBlock->adventureReplay));
     memset(gRogueSaveBlock->monMasteryFlags, 0, sizeof(gRogueSaveBlock->monMasteryFlags));
+    
+    // set fast path as default
+    Rogue_SetConfigRange(CONFIG_RANGE_GAME_MODE_NUM, ROGUE_GAME_MODE_FAST_PATH);
 
     Rogue_ClearPopupQueue();
 }
@@ -3542,7 +3433,11 @@ void Rogue_NotifySaveVersionUpdated(u16 fromVersion, u16 toVersion)
 {
     u32 i;
 
-    FlagSet(FLAG_ROGUE_SETTINGS_MENU_DISPLAY_HIGHLIGHT);
+    if(RogueSave_GetVersionIdFor(fromVersion) < SAVE_VER_ID_2_2_0)
+    {
+        // Only show this once per feature highlight i.e. from 2.1.0 to 2.2.0 but not 2.2.0 to 2.2.1
+        FlagSet(FLAG_ROGUE_SETTINGS_MENU_DISPLAY_HIGHLIGHT);
+    }
 
     if(Rogue_IsRunActive())
         gRogueLocal.hasSaveWarningPending = TRUE;
@@ -3903,7 +3798,7 @@ static void TryAutoItemPickup()
         if (!gObjectEvents[i].active || i == gPlayerAvatar.objectEventId)
             continue;
 
-        if(gObjectEvents[i].currentCoords.x != x || gObjectEvents[i].currentCoords.y != y || gObjectEvents[i].currentElevation != elevation)
+        if(gObjectEvents[i].currentCoords.x != x || gObjectEvents[i].currentCoords.y != y || gObjectEvents[i].currentElevation != elevation || gObjectEvents[i].invisible)
             continue;
 
         // Object is directly infront of player
@@ -3996,11 +3891,20 @@ static void TryAutoItemPickup()
                     }
                 }
             }
-            else if(template->graphicsId == OBJ_EVENT_GFX_BREAKABLE_ROCK || template->graphicsId == OBJ_EVENT_GFX_CUTTABLE_TREE || template->graphicsId == OBJ_EVENT_GFX_PUSHABLE_BOULDER)
+            else if(template->graphicsId == OBJ_EVENT_GFX_BREAKABLE_ROCK || template->graphicsId == OBJ_EVENT_GFX_CUTTABLE_TREE)
             {
                 gSelectedObjectEvent = i;
                 gSpecialVar_LastTalked = gObjectEvents[i].localId;
                 ScriptContext_SetupScript(template->script);
+            }
+            else if(template->graphicsId == OBJ_EVENT_GFX_PUSHABLE_BOULDER)
+            {
+                if(!FlagGet(FLAG_SYS_USE_STRENGTH))
+                {
+                    gSelectedObjectEvent = i;
+                    gSpecialVar_LastTalked = gObjectEvents[i].localId;
+                    ScriptContext_SetupScript(template->script);
+                }
             }
         }
 
@@ -4968,7 +4872,7 @@ static void BeginRogueRun(void)
     RogueQuest_OnTrigger(QUEST_TRIGGER_RUN_START);
 
 
-    Rogue_AddPartySnapshot();
+    Rogue_AddPartySnapshot(-1);
 
     if(Rogue_ShouldDisableMainQuests())
         Rogue_PushPopup_MainQuestsDisabled();
@@ -5199,7 +5103,7 @@ static void ChooseLegendarysForNewAdventure()
         gRogueRun.legendaryDifficulties[ADVPATH_LEGEND_BOX] = (gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_GAUNTLET) ? 0 : ROGUE_ELITE_START_DIFFICULTY - 1 + RogueRandomRange(2, 0);
         gRogueRun.legendarySpecies[ADVPATH_LEGEND_BOX] = SelectLegendarySpecies(ADVPATH_LEGEND_BOX);
 
-        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
+        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_FAST_PATH)
         {
             // Snap to paths where no routes are present
             gRogueRun.legendaryDifficulties[ADVPATH_LEGEND_BOX] = (gRogueRun.legendaryDifficulties[ADVPATH_LEGEND_BOX] / 2) * 2;
@@ -5211,7 +5115,7 @@ static void ChooseLegendarysForNewAdventure()
         gRogueRun.legendaryDifficulties[ADVPATH_LEGEND_ROAMER] = (gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_GAUNTLET) ? 0 : 1 + RogueRandomRange(5, 0);
         gRogueRun.legendarySpecies[ADVPATH_LEGEND_ROAMER] = SelectLegendarySpecies(ADVPATH_LEGEND_ROAMER);
 
-        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
+        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_FAST_PATH)
         {
             // Snap to paths where no routes are present
             gRogueRun.legendaryDifficulties[ADVPATH_LEGEND_ROAMER] = (gRogueRun.legendaryDifficulties[ADVPATH_LEGEND_ROAMER] / 2) * 2;
@@ -5223,7 +5127,7 @@ static void ChooseLegendarysForNewAdventure()
         gRogueRun.legendaryDifficulties[ADVPATH_LEGEND_MINOR] = (gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_GAUNTLET) ? 0 : ROGUE_GYM_MID_DIFFICULTY - 1 + RogueRandomRange(3, 0);
         gRogueRun.legendarySpecies[ADVPATH_LEGEND_MINOR] = SelectLegendarySpecies(ADVPATH_LEGEND_MINOR);
 
-        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
+        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_FAST_PATH)
         {
             // Snap to paths where no routes are present
             gRogueRun.legendaryDifficulties[ADVPATH_LEGEND_MINOR] = (gRogueRun.legendaryDifficulties[ADVPATH_LEGEND_MINOR] / 2) * 2;
@@ -5342,7 +5246,7 @@ static void ChooseTeamEncountersForNewAdventure()
     {
         gRogueRun.teamEncounterDifficulties[ADVPATH_TEAM_ENCOUNTER_EARLY] = 2 + RogueRandomRange(3, 0);
 
-        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL)
+        if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_FAST_PATH)
         {
             // Snap to paths where no routes are present
             gRogueRun.teamEncounterDifficulties[ADVPATH_TEAM_ENCOUNTER_EARLY] = (gRogueRun.teamEncounterDifficulties[ADVPATH_TEAM_ENCOUNTER_EARLY] / 2) * 2;
@@ -5830,6 +5734,8 @@ void Rogue_OnWarpIntoMap(void)
     FlagSet(FLAG_ROGUE_REWARD_ITEM_MART_DISABLED);
     FlagSet(FLAG_ROGUE_RARE_ITEM_MART_DISABLED);
 
+    FollowMon_ResetPalettes();
+
     if(IsRareShopActive())
         FlagClear(FLAG_ROGUE_RARE_ITEM_MART_DISABLED);
 
@@ -6240,6 +6146,8 @@ void Rogue_OnSetWarpData(struct WarpData *warp)
                 case ADVPATH_ROOM_GAMESHOW:
                 {
                     FlagClear(FLAG_ROGUE_HIDE_GAMESHOW_REWARD);
+                    
+                    RandomiseEnabledItems();
                     break;
                 }
 
@@ -6312,7 +6220,7 @@ static bool8 IsHubMapGroup()
 
 static bool8 ShouldAdjustRouteObjectEvents()
 {
-    return gRogueAdvPath.currentRoomType == ADVPATH_ROOM_ROUTE || gRogueAdvPath.currentRoomType == ADVPATH_ROOM_TEAM_HIDEOUT || gRogueAdvPath.currentRoomType == ADVPATH_ROOM_BOSS || gRogueAdvPath.currentRoomType == ADVPATH_ROOM_BATTLE_TOWER;
+    return gRogueAdvPath.currentRoomType == ADVPATH_ROOM_ROUTE || gRogueAdvPath.currentRoomType == ADVPATH_ROOM_TEAM_HIDEOUT || gRogueAdvPath.currentRoomType == ADVPATH_ROOM_BOSS || gRogueAdvPath.currentRoomType == ADVPATH_ROOM_BATTLE_TOWER || gRogueAdvPath.currentRoomType == ADVPATH_ROOM_GAMESHOW;
 }
 
 void Rogue_ModifyObjectEvents(struct MapHeader *mapHeader, bool8 loadingFromSave, struct ObjectEventTemplate *objectEvents, u8* objectEventCount, u8 objectEventCapacity)
@@ -6379,6 +6287,10 @@ void Rogue_ModifyObjectEvents(struct MapHeader *mapHeader, bool8 loadingFromSave
                         {
                             objectEvents[write].graphicsId = OBJ_EVENT_GFX_ITEM_RARE_CANDY;
                         }
+                        else if(itemId == ITEM_ESCAPE_ROPE)
+                        {
+                            objectEvents[write].graphicsId = OBJ_EVENT_GFX_ITEM_ESCAPE_ROPE;
+                        }
 #ifdef ROGUE_EXPANSION
                         else if(itemId >= ITEM_LONELY_MINT && itemId <= ITEM_SERIOUS_MINT)
                         {
@@ -6392,6 +6304,10 @@ void Rogue_ModifyObjectEvents(struct MapHeader *mapHeader, bool8 loadingFromSave
                         else if(Rogue_IsEvolutionItem(itemId))
                         {
                             objectEvents[write].graphicsId = OBJ_EVENT_GFX_ITEM_EVO_STONE;
+                        }
+                        else if(Rogue_IsTreasureItem(itemId))
+                        {
+                            objectEvents[write].graphicsId = OBJ_EVENT_GFX_ITEM_TREASURE;
                         }
                         else
                         {
@@ -6925,11 +6841,6 @@ void Rogue_Battle_StartTrainerBattle(void)
 
     SetupTrainerBattleInternal(gTrainerBattleOpponent_A);
 
-    if(!Rogue_IsVictoryLapActive() && Rogue_IsBossTrainer(gTrainerBattleOpponent_A))
-    {
-        Rogue_AddPartySnapshot();
-    }
-
     RememberPartyHeldItems();
     RememberPartyHealth();
 
@@ -6953,6 +6864,11 @@ void Rogue_Battle_StartTrainerBattle(void)
 
 void Rogue_Battle_TrainerTeamReady(void)
 {
+    if(!Rogue_IsVictoryLapActive() && (Rogue_IsBossTrainer(gTrainerBattleOpponent_A) || Rogue_IsRivalTrainer(gTrainerBattleOpponent_A)))
+    {
+        Rogue_AddPartySnapshot(gTrainerBattleOpponent_A);
+    }
+
     if(Rogue_IsFinalQuestFinalBoss())
     {
         u32 temp;
@@ -7313,7 +7229,7 @@ void Rogue_Battle_EndTrainerBattle(u16 trainerNum)
                 if(Rogue_GetCurrentDifficulty() >= ROGUE_MAX_BOSS_COUNT)
                 {
                     // Snapshot HoF team
-                    Rogue_AddPartySnapshot();
+                    Rogue_AddPartySnapshot(-1);
                     UpdateTrainerCardMonIconsFromParty();
 
                     FlagSet(FLAG_IS_CHAMPION);
@@ -7709,7 +7625,7 @@ u32 Rogue_CalcBagUpgradeCost()
     return 500 + 250 * (u32)(gSaveBlock1Ptr->bagCapacityUpgrades);
 }
 
-void Rogue_AddPartySnapshot()
+void Rogue_AddPartySnapshot(u16 trainerId)
 {
     AGB_ASSERT(gRogueRun.partySnapshotCount < ARRAY_COUNT(gRogueRun.partySnapshots));
 
@@ -7719,6 +7635,9 @@ void Rogue_AddPartySnapshot()
         u8 index = gRogueRun.partySnapshotCount++;
         memset(&gRogueRun.partySnapshots[index], 0, sizeof(gRogueRun.partySnapshots[index]));
 
+        gRogueRun.partySnapshots[index].trainerId = trainerId;
+
+        // Player party
         s = 0;
 
         for(i = 0; i < PARTY_SIZE; ++i)
@@ -7728,6 +7647,18 @@ void Rogue_AddPartySnapshot()
                 gRogueRun.partySnapshots[index].partySpeciesGfx[s] = FollowMon_GetMonGraphics(&gPlayerParty[i]);
                 gRogueRun.partySnapshots[index].partyPersonalities[s] = (GetMonData(&gPlayerParty[i], MON_DATA_PERSONALITY) & ~24); // remove nature part as that might change
                 gRogueRun.partySnapshots[index].partyOtIds[s] = GetMonData(&gPlayerParty[i], MON_DATA_OT_ID);
+                ++s;
+            }
+        }
+
+        // Opponent party
+        s = 0;
+
+        for(i = 0; i < PARTY_SIZE; ++i)
+        {
+            if(GetMonData(&gEnemyParty[i], MON_DATA_SPECIES) != SPECIES_NONE && GetMonData(&gEnemyParty[i], MON_DATA_HP) != 0)
+            {
+                gRogueRun.partySnapshots[index].enemySpeciesGfx[s] = FollowMon_GetMonGraphics(&gEnemyParty[i]);
                 ++s;
             }
         }
@@ -9392,7 +9323,7 @@ void Rogue_OpenMartQuery(u16 difficulty, u16 itemCategory, u16* minSalePrice)
         }
         applyRandomChance = TRUE;
         randomChanceMinimum = 20;
-        randomChanceGymRate = 3;
+        randomChanceGymRate = 14;
         break;
 
     case ROGUE_SHOP_HELD_ITEMS:
@@ -10081,11 +10012,11 @@ static void RandomiseEnabledTrainers()
 
     if(gRogueAdvPath.currentRoomType == ADVPATH_ROOM_BATTLE_TOWER)
     {
-        u16 enabledCount = 2 + RogueRandomRange(3, 0);
+        u16 enabledCount = 3 + RogueRandomRange(3, 0);
 
         if(RogueRandomChance(20, 0))
         {
-            enabledCount = 4 + RogueRandomRange(3, 0);
+            enabledCount = 5 + RogueRandomRange(2, 0);
         }
 
         for(i = 0; i < ROGUE_MAX_ACTIVE_TRAINER_COUNT; ++i)
@@ -10354,6 +10285,18 @@ static u8 RouteItems_CalculateWeight(u16 index, u16 itemId, void* data)
     u8 pocket = ItemId_GetPocket(itemId);
     u8 weight;
 
+    if(gRogueAdvPath.currentRoomType == ADVPATH_ROOM_GAMESHOW)
+    {
+        switch (itemId)
+        {
+        case ITEM_MASTER_BALL:
+            return 1;
+
+        case ITEM_ESCAPE_ROPE:
+            return 2;
+        }
+    }
+
     switch (pocket)
     {
     case POCKET_TM_HM:
@@ -10439,6 +10382,12 @@ static void RandomiseItemContent(u8 difficultyLevel)
             RogueMiscQuery_EditElement(QUERY_FUNC_INCLUDE, ITEM_RARE_CANDY);
             RogueMiscQuery_EditElement(QUERY_FUNC_INCLUDE, ITEM_ESCAPE_ROPE);
         }
+        else if(gRogueAdvPath.currentRoomType == ADVPATH_ROOM_GAMESHOW)
+        {
+            RogueMiscQuery_EditElement(QUERY_FUNC_INCLUDE, ITEM_ESCAPE_ROPE);
+            RogueMiscQuery_EditElement(QUERY_FUNC_INCLUDE, ITEM_MASTER_BALL);
+            //RogueMiscQuery_EditElement(QUERY_FUNC_INCLUDE, ITEM_RARE_CANDY);
+        }
 
         RogueWeightQuery_Begin();
         {
@@ -10470,17 +10419,30 @@ static void RandomiseEnabledItems(void)
         difficultyLevel = ROGUE_MAX_BOSS_COUNT - 1;
     }
 
+    if(gRogueAdvPath.currentRoomType == ADVPATH_ROOM_GAMESHOW)
+    {
+        difficultyLevel = min(ROGUE_MAX_BOSS_COUNT - 1, 2 + difficultyLevel * 2);
+    }
+
     for(i = 0; i < ROGUE_ITEM_COUNT; ++i)
     {
-        if(RogueRandomChanceItem())
+        if(gRogueAdvPath.currentRoomType == ADVPATH_ROOM_GAMESHOW)
         {
-            // Clear flag to show
+            // show everything by default, so it spawns in on the map
             FlagClear(FLAG_ROGUE_ITEM_START + i);
         }
         else
         {
-            // Set flag to hide
-            FlagSet(FLAG_ROGUE_ITEM_START + i);
+            if(RogueRandomChanceItem())
+            {
+                // Clear flag to show
+                FlagClear(FLAG_ROGUE_ITEM_START + i);
+            }
+            else
+            {
+                // Set flag to hide
+                FlagSet(FLAG_ROGUE_ITEM_START + i);
+            }
         }
     }
 

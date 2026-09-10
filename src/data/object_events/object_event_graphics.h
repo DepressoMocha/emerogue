@@ -908,6 +908,8 @@ const u32 gObjectEventPic_ItemDynamaxBall[] = INCBIN_U32("graphics/object_events
 const u32 gObjectEventPic_ItemHealing[] = INCBIN_U32("graphics/object_events/pics/rogue/item_healing.4bpp");
 const u32 gObjectEventPic_ItemTeraOrb[] = INCBIN_U32("graphics/object_events/pics/rogue/item_tera_orb.4bpp");
 const u32 gObjectEventPic_ItemTeraShard[] = INCBIN_U32("graphics/object_events/pics/rogue/item_tera_shard.4bpp");
+const u32 gObjectEventPic_ItemEscapeRope[] = INCBIN_U32("graphics/object_events/pics/rogue/item_escape_rope.4bpp");
+const u32 gObjectEventPic_ItemTreasure[] = INCBIN_U32("graphics/object_events/pics/rogue/item_treasure.4bpp");
 const u32 gObjectEventPic_GrassDefault[] = INCBIN_U32("graphics/object_events/pics/rogue/grass_default.4bpp");
 const u32 gObjectEventPic_GoldGrass[] = INCBIN_U32("graphics/object_events/pics/rogue/grass_golden.4bpp");
 const u32 gObjectEventPic_FlagAdventure[] = INCBIN_U32("graphics/object_events/pics/rogue/flag_adventure.4bpp");
@@ -940,5 +942,24 @@ const u32 gObjectEventPic_Route_Psychic[] = INCBIN_U32("graphics/object_events/p
 const u32 gObjectEventPic_Route_Rock[] = INCBIN_U32("graphics/object_events/pics/rogue/route/rock.4bpp");
 const u32 gObjectEventPic_Route_Steel[] = INCBIN_U32("graphics/object_events/pics/rogue/route/steel.4bpp");
 const u32 gObjectEventPic_Route_Water[] = INCBIN_U32("graphics/object_events/pics/rogue/route/water.4bpp");
+
+const u32 gObjectEventPic_WildDen_Bug[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/bug.4bpp");
+const u32 gObjectEventPic_WildDen_Dark[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/dark.4bpp");
+const u32 gObjectEventPic_WildDen_Dragon[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/dragon.4bpp");
+const u32 gObjectEventPic_WildDen_Electric[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/electric.4bpp");
+const u32 gObjectEventPic_WildDen_Fairy[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/fairy.4bpp");
+const u32 gObjectEventPic_WildDen_Fighting[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/fighting.4bpp");
+const u32 gObjectEventPic_WildDen_Fire[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/fire.4bpp");
+const u32 gObjectEventPic_WildDen_Flying[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/flying.4bpp");
+const u32 gObjectEventPic_WildDen_Ghost[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/ghost.4bpp");
+const u32 gObjectEventPic_WildDen_Grass[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/grass.4bpp");
+const u32 gObjectEventPic_WildDen_Ground[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/ground.4bpp");
+const u32 gObjectEventPic_WildDen_Ice[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/ice.4bpp");
+const u32 gObjectEventPic_WildDen_Normal[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/normal.4bpp");
+const u32 gObjectEventPic_WildDen_Poison[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/poison.4bpp");
+const u32 gObjectEventPic_WildDen_Psychic[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/psychic.4bpp");
+const u32 gObjectEventPic_WildDen_Rock[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/rock.4bpp");
+const u32 gObjectEventPic_WildDen_Steel[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/steel.4bpp");
+const u32 gObjectEventPic_WildDen_Water[] = INCBIN_U32("graphics/object_events/pics/rogue/wild_den/water.4bpp");
 
 #include "../../../graphics/object_events/pics/pokemon_ow/include/object_event_graphics_gen.h"

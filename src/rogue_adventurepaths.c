@@ -434,7 +434,7 @@ static u8 SelectRoomType_CalculateWeight(u16 weightIndex, u16 roomType, void* da
         // else default weight
         break;
 
-    // Usually only allow 1, but encourage multiple in experimental
+    // Usually only allow 1, but encourage multiple in fast path
     case ADVPATH_ROOM_BATTLE_SIM:
     case ADVPATH_ROOM_BATTLE_TOWER:
         count = CountRoomType(roomType);
@@ -628,7 +628,7 @@ static void ReplaceRoomEncounter(u8 fromRoomType, u8 toRoomType)
     }
 }
 
-static bool8 ExperimentalAreRoutesHidden()
+static bool8 FastPathAreRoutesHidden()
 {
     if(GetPathGenerationDifficulty() >= ROGUE_CHAMP_START_DIFFICULTY)
         return FALSE;
@@ -643,7 +643,7 @@ static void GenerateRoomPlacements(struct AdvPathSettings* pathSettings)
     u8 validEncounterCount = 0;
     u16 validEncounterList[ADVPATH_ROOM_COUNT];
     u16 minReplaceCount = 1;
-    bool8 experimentalHideRoutes = ExperimentalAreRoutesHidden();
+    bool8 fastPathHideRoutes = FastPathAreRoutesHidden();
 
     // Place gym at very end
     GenerateRoomInstance(0, ADVPATH_ROOM_BOSS);
@@ -741,7 +741,7 @@ static void GenerateRoomPlacements(struct AdvPathSettings* pathSettings)
         validEncounterList[validEncounterCount++] = ADVPATH_ROOM_SHRINE;
 
 
-    if(gRogueRun.gameRules.adventureGenerator != ADV_GENERATOR_EXPERIMENTAL || !experimentalHideRoutes)
+    if(gRogueRun.gameRules.adventureGenerator != ADV_GENERATOR_FAST_PATH || !fastPathHideRoutes)
     {
         // Legends
         for(i = 0; i < ADVPATH_LEGEND_COUNT; ++i)
@@ -844,7 +844,7 @@ static void GenerateRoomPlacements(struct AdvPathSettings* pathSettings)
             break;
         }
 
-        if(experimentalHideRoutes)
+        if(fastPathHideRoutes)
         {
             replacePerc = 100;
         }
@@ -867,7 +867,7 @@ static void GenerateRoomPlacements(struct AdvPathSettings* pathSettings)
     }
 
     // Wild dens
-    if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL && experimentalHideRoutes)
+    if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_FAST_PATH && fastPathHideRoutes)
     {
         // Leave a single column with routes in and that is all
         for(i = 0; i < gRogueAdvPath.roomCount; ++i)
@@ -1180,11 +1180,11 @@ bool8 RogueAdv_GenerateAdventurePathsIfRequired()
                 pathSettings.totalLength = 2;
             break;
 
-        case ADV_GENERATOR_EXPERIMENTAL:
+        case ADV_GENERATOR_FAST_PATH:
             if(GetPathGenerationDifficulty() >= ROGUE_CHAMP_START_DIFFICULTY)
                 pathSettings.totalLength = 3 + 2;
             else
-                pathSettings.totalLength = (ExperimentalAreRoutesHidden() ? 2 : 4) + 2;
+                pathSettings.totalLength = (FastPathAreRoutesHidden() ? 2 : 4) + 2;
             break;
 
         default:
@@ -1230,7 +1230,7 @@ bool8 RogueAdv_GenerateAdventurePathsIfRequired()
                     generator.connectionsSettingsPerColumn[i].branchingChance[ROOM_CONNECTION_MID] = 40;
                     generator.connectionsSettingsPerColumn[i].branchingChance[ROOM_CONNECTION_BOT] = 40;
                 }
-                if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_EXPERIMENTAL && !ExperimentalAreRoutesHidden())
+                if(gRogueRun.gameRules.adventureGenerator == ADV_GENERATOR_FAST_PATH && !FastPathAreRoutesHidden())
                 {
                     // Reduce variation to avoid spliting too wide
                     switch (RogueRandom() % 3)
@@ -2100,7 +2100,19 @@ bool8 RogueAdv_CanUseEscapeRope(void)
 
 u8 Rogue_GetTypeForHintForRoom(struct RogueAdvPathRoom const* room)
 {
-    return gRogueRouteTable.routes[room->roomParams.roomIdx].wildTypeTable[(room->coords.x + room->coords.y) % ARRAY_COUNT(gRogueRouteTable.routes[0].wildTypeTable)];
+    if(room->roomType == ADVPATH_ROOM_ROUTE)
+    {
+        return gRogueRouteTable.routes[room->roomParams.roomIdx].wildTypeTable[(room->coords.x + room->coords.y) % ARRAY_COUNT(gRogueRouteTable.routes[0].wildTypeTable)];
+    }
+    else if(room->roomType == ADVPATH_ROOM_WILD_DEN)
+    {
+        u8 type1 = GetTypeBySpecies(room->roomParams.perType.wildDen.species, 0, 0);
+        u8 type2 = GetTypeBySpecies(room->roomParams.perType.wildDen.species, 1, 0);
+
+        return ((room->coords.x + room->coords.y) % 2 == 0) ? type1 : type2;
+    }
+
+    return TYPE_MYSTERY;
 }
 
 static u16 SelectObjectGfxForRoom(struct RogueAdvPathRoom* room)
@@ -2203,7 +2215,53 @@ static u16 SelectObjectGfxForRoom(struct RogueAdvPathRoom* room)
             return OBJ_EVENT_GFX_NOLAND;
 
         case ADVPATH_ROOM_WILD_DEN:
-            return OBJ_EVENT_GFX_GRASS_DEFAULT;
+        {
+            switch(Rogue_GetTypeForHintForRoom(room))
+            {
+                case TYPE_BUG:
+                    return OBJ_EVENT_GFX_WILD_DEN_BUG;
+                case TYPE_DARK:
+                    return OBJ_EVENT_GFX_WILD_DEN_DARK;
+                case TYPE_DRAGON:
+                    return OBJ_EVENT_GFX_WILD_DEN_DRAGON;
+                case TYPE_ELECTRIC:
+                    return OBJ_EVENT_GFX_WILD_DEN_ELECTRIC;
+#ifdef ROGUE_EXPANSION
+                case TYPE_FAIRY:
+                    return OBJ_EVENT_GFX_WILD_DEN_FAIRY;
+#endif
+                case TYPE_FIGHTING:
+                    return OBJ_EVENT_GFX_WILD_DEN_FIGHTING;
+                case TYPE_FIRE:
+                    return OBJ_EVENT_GFX_WILD_DEN_FIRE;
+                case TYPE_FLYING:
+                    return OBJ_EVENT_GFX_WILD_DEN_FLYING;
+                case TYPE_GHOST:
+                    return OBJ_EVENT_GFX_WILD_DEN_GHOST;
+                case TYPE_GRASS:
+                    return OBJ_EVENT_GFX_WILD_DEN_GRASS;
+                case TYPE_GROUND:
+                    return OBJ_EVENT_GFX_WILD_DEN_GROUND;
+                case TYPE_ICE:
+                    return OBJ_EVENT_GFX_WILD_DEN_ICE;
+                case TYPE_NORMAL:
+                    return OBJ_EVENT_GFX_WILD_DEN_NORMAL;
+                case TYPE_POISON:
+                    return OBJ_EVENT_GFX_WILD_DEN_POISON;
+                case TYPE_PSYCHIC:
+                    return OBJ_EVENT_GFX_WILD_DEN_PSYCHIC;
+                case TYPE_ROCK:
+                    return OBJ_EVENT_GFX_WILD_DEN_ROCK;
+                case TYPE_STEEL:
+                    return OBJ_EVENT_GFX_WILD_DEN_STEEL;
+                case TYPE_WATER:
+                    return OBJ_EVENT_GFX_WILD_DEN_WATER;
+
+                default:
+                //case TYPE_MYSTERY:
+                    return OBJ_EVENT_GFX_WILD_DEN_MYSTERY;
+            }
+        }
 
         case ADVPATH_ROOM_HONEY_TREE:
             return OBJ_EVENT_GFX_GOLD_GRASS;
@@ -2419,6 +2477,10 @@ void RogueAdv_GetLastInteractedRoomParams()
     {
         case ADVPATH_ROOM_ROUTE:
             gSpecialVar_ScriptNodeParam1 = gRogueAdvPath.rooms[roomIdx].roomParams.perType.route.difficulty;
+            BufferTypeAdjective(Rogue_GetTypeForHintForRoom(&gRogueAdvPath.rooms[roomIdx]));
+            break;
+
+        case ADVPATH_ROOM_WILD_DEN:
             BufferTypeAdjective(Rogue_GetTypeForHintForRoom(&gRogueAdvPath.rooms[roomIdx]));
             break;
     }

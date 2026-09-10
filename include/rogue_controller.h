@@ -102,7 +102,6 @@ u8* Rogue_GetMiniMenuContent(void);
 void Rogue_CreateMiniMenuExtraGFX(void);
 void Rogue_RemoveMiniMenuExtraGFX(void);
 
-u8 SpeciesToGen(u16 species);
 bool8 Rogue_IsItemEnabled(u16 item);
 
 bool8 IsMegaEvolutionEnabled(void);
@@ -185,7 +184,7 @@ u16 Rogue_GetBagCapacity();
 u16 Rogue_GetBagPocketAmountPerItem(u8 pocket);
 u32 Rogue_CalcBagUpgradeCost();
 
-void Rogue_AddPartySnapshot();
+void Rogue_AddPartySnapshot(u16 trainerId);
 void Rogue_DebugFillPartySnapshots();
 
 void Rogue_PreBattleSetup(void);

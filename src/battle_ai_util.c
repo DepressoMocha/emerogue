@@ -298,8 +298,10 @@ static const s8 sAiAbilityRatings[ABILITIES_COUNT] =
     [ABILITY_WELL_BAKED_BODY] = 7,
     [ABILITY_THERMAL_EXCHANGE] = 7,
     [ABILITY_DRAGONIZE] = 8,
+    [ABILITY_EELEVATE] = 7,
 
     [ABILITY_FORECAST_PRIORITY] = 9,
+    [ABILITY_DRAGON_FLY] = 6,
 };
 
 static const u16 sEncouragedEncoreEffects[] =
@@ -516,10 +518,16 @@ static bool32 ShouldFailForIllusion(u32 illusionSpecies, u32 battlerId)
         if (pokemonProfile->levelUpMoves[j].move != MOVE_NONE)
             continue;
 
-        // The used move can be learned from Tm/Hm or Move Tutors.
-        if (CanSpeciesLearnTM(illusionSpecies, move)) // todo tutor hookup too
-            continue;
+        for (j = 0; pokemonProfile->tutorMoves[j] != MOVE_NONE; j++)
+        {
+            if (pokemonProfile->tutorMoves[j] == move)
+                break;
+        }
 
+        // The used move can be learned from Tm/Hm or Move Tutors.
+        if (pokemonProfile->tutorMoves[j] != MOVE_NONE)
+            continue;
+            
         // 'Illegal move', AI won't fail for the illusion.
         return FALSE;
     }
@@ -544,8 +552,8 @@ void SetBattlerData(u32 battlerId)
             if (gBattleMons[battlerId].type1 == GetTypeBySpecies(species, 0, otId)
                 && gBattleMons[battlerId].type2 == GetTypeBySpecies(species, 1, otId))
             {
-                gBattleMons[battlerId].type1 = GetTypeBySpecies(species, 0, otId);
-                gBattleMons[battlerId].type2 = GetTypeBySpecies(species, 1, otId);
+                gBattleMons[battlerId].type1 = GetTypeBySpecies(illusionSpecies, 0, otId);
+                gBattleMons[battlerId].type2 = GetTypeBySpecies(illusionSpecies, 1, otId);
             }
             species = illusionSpecies;
         }
@@ -619,6 +627,8 @@ bool32 IsBattlerTrapped(u32 battler, bool32 checkSwitch)
     else if (gFieldStatuses & STATUS_FIELD_FAIRY_LOCK)
         return TRUE;
     else if (IsAbilityPreventingEscape(battler))
+        return TRUE;
+    if (gBattleStruct->commanderInfo[battler].commanderSpecies)
         return TRUE;
 
     return FALSE;
@@ -1369,6 +1379,8 @@ bool32 AI_IsBattlerGrounded(u32 battlerId)
         return FALSE;
     else if (AI_DATA->abilities[battlerId] == ABILITY_LEVITATE)
         return FALSE;
+    else if (AI_DATA->abilities[battlerId] == ABILITY_EELEVATE)
+        return FALSE;
     else if (IS_BATTLER_OF_TYPE(battlerId, TYPE_FLYING))
         return FALSE;
     else
@@ -1493,6 +1505,8 @@ bool32 IsSemiInvulnerable(u32 battlerDef, u32 move)
     else if (!gBattleMoves[move].damagesUnderwater && gStatuses3[battlerDef] & STATUS3_UNDERWATER)
         return TRUE;
     else if (!gBattleMoves[move].damagesUnderground && gStatuses3[battlerDef] & STATUS3_UNDERGROUND)
+        return TRUE;
+    else if (gStatuses3[battlerDef] & STATUS3_COMMANDER)
         return TRUE;
     else
         return FALSE;
@@ -2553,7 +2567,7 @@ static bool32 PartyBattlerShouldAvoidHazards(u32 currBattler, u32 switchBattler)
         hazardDamage += GetStealthHazardDamageByTypesAndHP(gBattleMoves[MOVE_STEALTH_ROCK].type, type1, type2, maxHp);
 
     if (flags & SIDE_STATUS_SPIKES && ((type1 != TYPE_FLYING && type2 != TYPE_FLYING
-        && ability != ABILITY_LEVITATE && holdEffect != HOLD_EFFECT_AIR_BALLOON)
+        && ability != ABILITY_LEVITATE && ability != ABILITY_EELEVATE && holdEffect != HOLD_EFFECT_AIR_BALLOON)
         || holdEffect == HOLD_EFFECT_IRON_BALL || gFieldStatuses & STATUS_FIELD_GRAVITY))
     {
         s32 spikesDmg = maxHp / ((5 - gSideTimers[GetBattlerSide(currBattler)].spikesAmount) * 2);

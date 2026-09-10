@@ -241,6 +241,8 @@ struct RoguePartySnapshot
     u32 partyPersonalities[PARTY_SIZE];
     u32 partyOtIds[PARTY_SIZE];
     u16 partySpeciesGfx[PARTY_SIZE];
+    u16 enemySpeciesGfx[PARTY_SIZE];
+    u16 trainerId;
 };
 
 struct GameModeRules
@@ -262,13 +264,15 @@ struct GameModeRules
     u8 disableRivalEncounters : 1;
     u8 disableRouteTrainers : 1;
     u8 forceFullShopInventory : 1;
+    u8 forceFullTutorMoves : 1;
+    u8 rivalUsesPlayerLevel : 1;
 };
 
 struct RogueRunData
 {
     struct GameModeRules gameRules;
     struct RogueWildEncounters wildEncounters;
-    struct RoguePartySnapshot partySnapshots[ROGUE_MAX_BOSS_COUNT + 2];
+    struct RoguePartySnapshot partySnapshots[ROGUE_MAX_BOSS_COUNT + 5];
     struct RoguePokemonFacade labParty[LAB_MON_COUNT];
     u16 subSeeds[ROGUE_SUBSEED_COUNT];
     u16 bossTrainerNums[ROGUE_MAX_BOSS_COUNT];
@@ -284,7 +288,7 @@ struct RogueRunData
     u8 completedBadges[ROGUE_MAX_BOSS_COUNT];
     u8 lastShopVisitDifficulty[ROGUE_SHOP_COUNT];
     u8 activeEvoItemFlags[8];
-    u8 activeFormItemFlags[18]; // technically this isn't needed for Vanilla
+    u8 activeFormItemFlags[20]; // technically this isn't needed for Vanilla
     union
     {
         struct RogueCampaignData_Generic generic;
@@ -540,6 +544,7 @@ struct RogueNetHandshake
     u8 playerId;
     u8 accepted : 1;
     u8 isVersionEx : 1;
+    u8 isPermaRevisedActive : 1;
 };
 
 struct RogueNetMultiplayer

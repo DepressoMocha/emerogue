@@ -4,12 +4,7 @@
 #include "berry.h"
 #include "clock.h"
 #include "coins.h"
-#include "contest.h"
-#include "contest_util.h"
-#include "contest_painting.h"
 #include "data.h"
-#include "decoration.h"
-#include "decoration_inventory.h"
 #include "event_data.h"
 #include "field_door.h"
 #include "field_effect.h"
@@ -23,7 +18,6 @@
 #include "field_weather.h"
 #include "fieldmap.h"
 #include "item.h"
-#include "lilycove_lady.h"
 #include "main.h"
 #include "menu.h"
 #include "money.h"
@@ -566,7 +560,8 @@ bool8 ScrCmd_adddecoration(struct ScriptContext *ctx)
 {
     u32 decorId = VarGet(ScriptReadHalfword(ctx));
 
-    gSpecialVar_Result = DecorationAdd(decorId);
+    AGB_ASSERT(FALSE);
+    gSpecialVar_Result = FALSE;
     return FALSE;
 }
 
@@ -574,7 +569,8 @@ bool8 ScrCmd_removedecoration(struct ScriptContext *ctx)
 {
     u32 decorId = VarGet(ScriptReadHalfword(ctx));
 
-    gSpecialVar_Result = DecorationRemove(decorId);
+    AGB_ASSERT(FALSE);
+    gSpecialVar_Result = FALSE;
     return FALSE;
 }
 
@@ -582,7 +578,8 @@ bool8 ScrCmd_checkdecorspace(struct ScriptContext *ctx)
 {
     u32 decorId = VarGet(ScriptReadHalfword(ctx));
 
-    gSpecialVar_Result = DecorationCheckSpace(decorId);
+    AGB_ASSERT(FALSE);
+    gSpecialVar_Result = FALSE;
     return FALSE;
 }
 
@@ -590,7 +587,8 @@ bool8 ScrCmd_checkdecor(struct ScriptContext *ctx)
 {
     u32 decorId = VarGet(ScriptReadHalfword(ctx));
 
-    gSpecialVar_Result = CheckHasDecoration(decorId);
+    AGB_ASSERT(FALSE);
+    gSpecialVar_Result = FALSE;
     return FALSE;
 }
 
@@ -1580,19 +1578,6 @@ bool8 ScrCmd_hidemonpic(struct ScriptContext *ctx)
     return TRUE;
 }
 
-bool8 ScrCmd_showcontestpainting(struct ScriptContext *ctx)
-{
-    u8 contestWinnerId = ScriptReadByte(ctx);
-
-    // Artist's painting is temporary and already has its data loaded
-    if (contestWinnerId != CONTEST_WINNER_ARTIST)
-        SetContestWinnerForPainting(contestWinnerId);
-
-    ShowContestPainting();
-    ScriptContext_Stop();
-    return TRUE;
-}
-
 bool8 ScrCmd_braillemessage(struct ScriptContext *ctx)
 {
     u8 *ptr = (u8 *)ScriptReadWord(ctx);
@@ -1750,15 +1735,6 @@ bool8 ScrCmd_bufferstdstring(struct ScriptContext *ctx)
     u16 index = VarGet(ScriptReadHalfword(ctx));
 
     StringCopy(sScriptStringVars[stringVarIndex], gStdStrings[index]);
-    return FALSE;
-}
-
-bool8 ScrCmd_buffercontestname(struct ScriptContext *ctx)
-{
-    u8 stringVarIndex = ScriptReadByte(ctx);
-    u16 category = VarGet(ScriptReadHalfword(ctx));
-
-    BufferContestName(sScriptStringVars[stringVarIndex], category);
     return FALSE;
 }
 
@@ -2170,35 +2146,6 @@ bool8 ScrCmd_getpokenewsactive(struct ScriptContext *ctx)
 
     gSpecialVar_Result = IsPokeNewsActive(newsKind);
     return FALSE;
-}
-
-bool8 ScrCmd_choosecontestmon(struct ScriptContext *ctx)
-{
-    ChooseContestMon();
-    ScriptContext_Stop();
-    return TRUE;
-}
-
-
-bool8 ScrCmd_startcontest(struct ScriptContext *ctx)
-{
-    StartContest();
-    ScriptContext_Stop();
-    return TRUE;
-}
-
-bool8 ScrCmd_showcontestresults(struct ScriptContext *ctx)
-{
-    ShowContestResults();
-    ScriptContext_Stop();
-    return TRUE;
-}
-
-bool8 ScrCmd_contestlinktransfer(struct ScriptContext *ctx)
-{
-    ContestLinkTransfer(gSpecialVar_ContestCategory);
-    ScriptContext_Stop();
-    return TRUE;
 }
 
 bool8 ScrCmd_dofieldeffect(struct ScriptContext *ctx)

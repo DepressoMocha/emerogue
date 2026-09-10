@@ -3175,8 +3175,8 @@ void SwitchInClearSetData(u32 battler)
         gBattleMons[battler].status2 &= (STATUS2_CONFUSION | STATUS2_FOCUS_ENERGY | STATUS2_SUBSTITUTE | STATUS2_ESCAPE_PREVENTION | STATUS2_CURSED);
         gStatuses3[battler] &= (STATUS3_LEECHSEED_BATTLER | STATUS3_LEECHSEED | STATUS3_ALWAYS_HITS | STATUS3_PERISH_SONG | STATUS3_ROOTED
                                        | STATUS3_GASTRO_ACID | STATUS3_EMBARGO | STATUS3_TELEKINESIS | STATUS3_MAGNET_RISE | STATUS3_HEAL_BLOCK
-                                       | STATUS3_AQUA_RING | STATUS3_POWER_TRICK);
-        gStatuses4[battler] &= (STATUS4_MUD_SPORT | STATUS4_WATER_SPORT | STATUS4_INFINITE_CONFUSION);
+                                       | STATUS3_POWER_TRICK);
+        gStatuses4[battler] &= (STATUS4_MUD_SPORT | STATUS4_WATER_SPORT | STATUS4_INFINITE_CONFUSION | STATUS4_AQUA_RING);
         for (i = 0; i < gBattlersCount; i++)
         {
             if (GetBattlerSide(battler) != GetBattlerSide(i)
@@ -3318,6 +3318,22 @@ const u8* FaintClearSetData(u32 battler)
             gBattleMons[i].status2 &= ~STATUS2_WRAPPED;
         if ((gStatuses4[i] & STATUS4_SYRUP_BOMB) && *(gBattleStruct->stickySyrupdBy + i) == battler)
             gStatuses4[i] &= ~STATUS4_SYRUP_BOMB;
+    }
+
+    if (gBattleStruct->commanderInfo[battler].commanderSpecies != SPECIES_NONE)
+    {
+        u16 partner = BATTLE_PARTNER(battler);
+        // Clear commander state immediately so a replacement doesn't inherit it.
+        gBattleStruct->commanderInfo[battler].commanderSpecies = SPECIES_NONE;
+        if(gStatuses3[partner] & STATUS3_COMMANDER)
+        {
+            gStatuses3[partner] &= ~STATUS3_COMMANDER;
+            if (IsBattlerAlive(partner))
+            {
+                BtlController_EmitSpriteInvisibility(partner, BUFFER_A, FALSE);
+                MarkBattlerForControllerExec(partner);
+            }
+        }
     }
 
     gActionSelectionCursor[battler] = 0;
@@ -3872,6 +3888,8 @@ static void TryDoEventsBeforeFirstTurn(void)
             return;
         if (AbilityBattleEffects(ABILITYEFFECT_ON_SWITCHIN, gBattlerAttacker, 0, 0, 0) != 0)
             return;
+        if (AbilityBattleEffects(ABILITYEFFECT_DEPENDS_ON_ALLY, gBattlerAttacker, 0, 0, 0) != 0)
+            return;
     }
     if (AbilityBattleEffects(ABILITYEFFECT_TRACE1, 0, 0, 0, 0) != 0)
         return;
@@ -4173,7 +4191,7 @@ static void HandleTurnActionSelectionState(void)
                 || gBattleStruct->absentBattlerFlags & gBitTable[GetBattlerAtPosition(BATTLE_PARTNER(position))]
                 || gBattleCommunication[GetBattlerAtPosition(BATTLE_PARTNER(position))] == STATE_WAIT_ACTION_CONFIRMED)
             {
-                if (gBattleStruct->absentBattlerFlags & gBitTable[battler])
+                if (gBattleStruct->absentBattlerFlags & gBitTable[battler] || gBattleStruct->commanderInfo[battler].commandingDondozo)
                 {
                     gChosenActionByBattler[battler] = B_ACTION_NOTHING_FAINTED;
                     if (!(gBattleTypeFlags & BATTLE_TYPE_MULTI))
@@ -4292,6 +4310,7 @@ static void HandleTurnActionSelectionState(void)
                 case B_ACTION_SWITCH:
                     *(gBattleStruct->battlerPartyIndexes + battler) = gBattlerPartyIndexes[battler];
                     if (gBattleTypeFlags & BATTLE_TYPE_ARENA
+                        || gBattleStruct->commanderInfo[battler].commanderSpecies != SPECIES_NONE
                         || !CanBattlerEscape(battler))
                     {
                         BtlController_EmitChoosePokemon(battler, BUFFER_A, PARTY_ACTION_CANT_SWITCH, PARTY_SIZE, ABILITY_NONE, gBattleStruct->battlerPartyOrders[battler]);
@@ -5127,6 +5146,9 @@ static void TurnValuesCleanUp(bool8 var0)
 
         if (gDisableStructs[i].substituteHP == 0)
             gBattleMons[i].status2 &= ~STATUS2_SUBSTITUTE;
+            
+        if (!(gStatuses3[i] & STATUS3_COMMANDER))
+            gBattleStruct->commanderInfo[i].commandingDondozo = FALSE;
 
         gSpecialStatuses[i].parentalBondState = PARENTAL_BOND_OFF;
     }
@@ -5842,7 +5864,7 @@ static u32 TrySetAteType(u16 move, u16 battlerAtk, u16 attackerAbility)
         ateType = TYPE_DRAGON;
         break;
     case ABILITY_LIQUID_VOICE:
-        if(gBattleMoves[move].effect == EFFECT_RELIC_SONG)
+        if(gBattleMoves[move].soundMove)
             ateType = TYPE_WATER;
         break;
     default:
@@ -5981,6 +6003,11 @@ void SetTypeBeforeUsingMove(u32 move, u32 battlerAtk)
     else if (move == MOVE_AURA_WHEEL && gBattleMons[battlerAtk].species == SPECIES_MORPEKO_HANGRY)
     {
         gBattleStruct->dynamicMoveType = TYPE_DARK | F_DYNAMIC_TYPE_SET;
+    }
+    else if (gBattleMoves[move].type == TYPE_DRAGON && attackerAbility == ABILITY_DRAGON_FLY)
+    {
+        gBattleStruct->dynamicMoveType = TYPE_BUG | F_DYNAMIC_TYPE_SET;
+        gBattleStruct->ateBoost[battlerAtk] = 1;
     }
 
     GET_MOVE_TYPE(move, moveType);

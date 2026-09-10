@@ -20,6 +20,7 @@
 #include "sound.h"
 #include "battle.h"
 #include "battle_controllers.h"
+#include "emulator_check.h"
 #include "text.h"
 #include "intro.h"
 #include "main.h"
@@ -122,9 +123,12 @@ void AgbMain()
     InitHeap(gHeap, HEAP_SIZE);
 
     gMain.nativeSpeedUpActive = FALSE;
+    gMain.isInaccurateEmulator = IsInaccurateEmulator();
     gSoftResetDisabled = FALSE;
 
-    if (gFlashMemoryPresent != TRUE)
+    if (gMain.isInaccurateEmulator)
+        RunEmulatorCheckUI(CB2_InitCopyrightScreenAfterBootup);
+    else if (gFlashMemoryPresent != TRUE)
         SetMainCallback2(NULL);
 
     gLinkTransferringData = FALSE;
