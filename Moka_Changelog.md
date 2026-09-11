@@ -1,5 +1,8 @@
 # CHANGELOG
 
+VER 2.2.1-M
+- Merged everything from upstream again, should be up to date now?
+
 VER 2.1.2-M
 - Merged everything from upstream, thank you for your hard work Abbie!
 - Removed the old potion brewing method
